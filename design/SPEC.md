@@ -1,0 +1,216 @@
+# ROTGUT — Game Spec
+> Fast, grimy PS1-era FPS roguelite. Skill expression through movement. Speed is power.
+
+---
+
+## Objective
+
+Build a movement-heavy first-person shooter roguelite where **mastery of movement directly translates to mechanical power**. The player runs through a series of pre-designed levels per run. Death resets the run but meta-progression carries over (unlocks, permanent upgrades).
+
+The game is about one feeling: **flowing through a level at high speed, chaining movement techs, and watching your combo escalate into a visual frenzy**.
+
+**Target player:** Someone who loves high-skill-ceiling movement games (CSGO bhop, Titanfall 2, ULTRAKILL) and wants the satisfaction of "getting good" at movement, not just aiming.
+
+**Success looks like:** A player spends 30 minutes in the game trying to bhop better, not because there's a reward — but because the movement itself is fun and the feedback feels amazing.
+
+---
+
+## Core Design Pillars
+
+### Pillar 1 — Movement Mastery
+Movement is the hardest and most rewarding skill in the game. It has a high skill floor and no ceiling.
+
+| Tech | Description |
+|---|---|
+| **Bunny hop** | CSGO-style: jump at the right moment while strafing (A/D) to maintain and build speed. Requires timing and air control — NOT easy to master. |
+| **Air strafing** | Mouse + A/D mid-air to redirect and gain momentum. Feels wrong at first, right once learned. |
+| **Double jump** | Second jump in mid-air — can be used to extend bhop chains or recover. |
+| **Dash** | A directional burst with weight and impact. NOT a teleport. Adds to existing momentum — dash while fast and you get faster. |
+| **Wall ride** | Run along vertical surfaces to carry speed and reach new geometry. |
+| **Jump boost** | Boost pad / geometry interaction that launches the player upward with speed carry. |
+| **Rocket jump** | Fire a rocket at your feet and ride the explosion blast. Requires health cost or risk. |
+
+Movement should feel **wrong when you're bad** and **euphoric when you're good**. Bhop in particular should have a detectable learning curve (like CSGO) not just feel good from frame one.
+
+### Pillar 2 — Speed Scales Power
+Movement speed directly affects combat effectiveness. A player who is flowing does more damage.
+
+- **Speed → Damage multiplier.** The faster you're moving when you fire, the more damage your shot deals. A standing shot is weak. A bhop shot is lethal.
+- This means camping and standing still are mechanically punished. Aggression is optimal.
+- The exact formula is TBD (will tune in playtesting) but the *feeling* is: "I need to keep moving or I'm useless."
+
+### Pillar 3 — Combo Escalation (The Dopamine Loop)
+Kills, movement speed, and style chain into a **combo multiplier** that escalates visual feedback.
+
+- Combo grows when: you kill enemies, maintain high speed, chain techs without stopping.
+- Combo decays when: you stop moving, take damage, miss shots (TBD — tune in playtesting).
+- **Visual escalation tied to combo level:**
+
+| Combo Level | Visual Effect |
+|---|---|
+| 0 (cold) | Normal weapon look, no effects |
+| Low | Subtle glow on weapon/hands |
+| Mid | Weapon model shifts (color, trails, particles) |
+| High | Effects appear around the player (aura, screen edge glow, particle burst on kills) |
+| MAX | Full visual frenzy — weapon looks completely transformed, every kill is an explosion of effects |
+
+The goal: the player *sees* how well they're doing at all times, not just reads a number. Numbers can exist (score, multiplier) but the **visual language is the primary feedback**.
+
+---
+
+## Game Structure (Roguelite)
+
+- **Run:** A sequence of pre-designed levels. Player goes level → level → (boss?) → death or completion.
+- **Death:** Resets current run. No checkpoint within a run (or limited — TBD).
+- **Between runs:** Some form of meta-progression carries over — exact model TBD.
+
+### Inspirations for Progression Feel
+- **Cruelty Squad** — chaotic, experimental, deeply unique. A reminder that we don't need to copy an existing model. The right progression system for ROTGUT may not exist yet.
+- **Hades** — permanent currency, spend between runs.
+- **Risk of Rain 2** — mid-run item stacking, death resets all.
+
+### Meta-Progression: Intentionally Open
+The progression model is **deliberately unspecified** until the core movement loop is playable. Once bhop, dash, and the combo system exist and feel right, the right progression structure will become obvious from playing it. Don't design it blind — let the movement suggest it.
+
+> **Revisit this once Step 4 (full movement suite) is complete.**
+
+---
+
+## Weapons
+
+Inspired by ULTRAKILL: distinct weapons that feel completely different from each other, each with unique movement synergy.
+
+- **Weight and impact above all.** Every shot should feel like it matters. Redliner-style exaggeration: big muzzle flash, big hit reaction, screenshake, satisfying audio.
+- Rocket launcher is required (enables rocket jumping — mechanical not just combat).
+- Exact weapon roster TBD during weapon phase of development.
+- Weapons likely found/switched during runs (not a loadout you bring in).
+
+---
+
+## Aesthetic
+
+- **PS1-era retro** — low-poly geometry, pixelated/limited textures, simple lighting.
+- This is a *vibe* target, not a technical emulation. No actual polygon limit.
+- Gore and grime. The name is ROTGUT.
+- Fast and readable over pretty. If it slows the game down, cut it.
+
+---
+
+## Tech Stack
+
+| Component | Choice |
+|---|---|
+| Engine | Godot 4 (latest stable) |
+| Language | GDScript (static typing enforced) |
+| Renderer | Compatibility (lightweight, fast, web-export ready) |
+| Level Design | Pre-designed in Godot (GridMap or CSG for now; Blender import later) |
+| Version Control | Git (already initialized) |
+| Platform | Windows primary; web (HTML5) as stretch goal |
+
+---
+
+## Project Structure
+
+Feature-based (not type-based):
+
+```
+godot-project/
+├── project.godot
+├── entities/
+│   ├── player/          # Player scene, controller, camera
+│   ├── enemy/           # Enemy types (later)
+│   └── projectiles/     # Bullet, rocket, etc.
+├── weapons/             # Weapon scenes and logic
+├── levels/              # Pre-designed level scenes
+├── ui/                  # HUD, menus, combo display
+├── common/              # Shared resources, autoloads, utilities
+└── addons/              # Third-party plugins (if any)
+
+design/                  # This spec and design notes (outside Godot project)
+assets-raw/              # Raw .blend, .psd files (with .gdignore)
+```
+
+---
+
+## Code Style (GDScript)
+
+Static typing enforced throughout:
+
+```gdscript
+class_name PlayerController extends CharacterBody3D
+
+signal speed_changed(new_speed: float)
+
+@export var max_speed: float = 30.0
+@onready var _camera: Camera3D = %PlayerCamera
+
+func _physics_process(delta: float) -> void:
+    _handle_movement(delta)
+
+func _handle_movement(delta: float) -> void:
+    # movement logic
+    pass
+```
+
+Rules:
+- Always declare types (`var x: int`, `func foo() -> void`)
+- `%UniqueNames` for node references, never hardcoded `get_node()` paths
+- Signals go **up** (child → parent), calls go **down** (parent → child)
+- Private members prefixed with `_`
+- Signals in past tense (`speed_changed`, `player_died`)
+
+---
+
+## Build Order (MVP First)
+
+Build in this order. Do not start the next step until the current one is playable.
+
+1. **Project setup + folder structure** ← we are here
+2. **FPS character controller** — walk, sprint, jump, air control, gravity
+3. **Bunny hop + air strafing** — the hardest and most important step
+4. **Full movement suite** — dash, double jump, wall ride, rocket jump
+5. **Speed → damage system** — wire movement speed to a damage multiplier
+6. **Camera feel** — mouse look, weapon bob, speed FOV scaling, screen effects
+7. **First weapon** — hitscan or projectile, big impact, correct feel
+8. **Combo system** — speed/kill tracking → multiplier → visual escalation
+9. **Test arena** — a level designed to test and show off movement
+10. **First enemy type** — dumb AI, just something to shoot at
+11. **Roguelite run structure** — level sequencing, death, meta-progression
+12. **More weapons + enemies** — build out the content
+13. **Audio/juice pass** — sounds, music, polish
+14. **Export** — playable build
+
+---
+
+## Boundaries
+
+**Always:**
+- Get movement feeling right before touching enemies or UI
+- Keep the combo/speed loop tightly linked — test them together
+- Update this spec when scope or decisions change
+
+**Ask first:**
+- Adding any new system not on the build order
+- Changing the roguelite progression model once decided
+- Adding multiplayer (not in scope)
+- Importing Blender levels (later — not until test arena phase)
+
+**Never:**
+- Build enemies before movement is satisfying
+- Add UI clutter that obscures the visual combo system
+- Use ForwardPlus renderer features (stay on Compatibility)
+- Add cutscenes, story, or dialogue (out of scope)
+
+---
+
+## Open Questions
+
+1. **Meta-progression model** — intentionally deferred. Revisit after movement suite is playable.
+2. **Combo decay conditions** — does combo drop on taking damage? On missing shots? On slowing below a speed threshold?
+3. **Rocket jump health cost** — does it cost HP? Drain? Or free if you're skilled enough?
+4. **Level count per run** — how many levels before a "win" or boss?
+5. **Blender workflow** — when do we want to bring in Blender for level design vs. building in Godot?
+
+---
+
+*Last updated: 2026-06-21 | Status: APPROVED — ready to plan*

@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://borb6x3hemyoy"]
+
+[ext_resource type="PackedScene" uid="uid://drj5l6cuickqd" path="res://entities/player/player.tscn" id="1_goyld"]
+[ext_resource type="Script" uid="uid://b2xwx3dywhq8b" path="res://levels/test_arena.gd" id="1_qdrqe"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_chewe"]
+size = Vector3(20, 0.5, 20)
+
+[sub_resource type="BoxMesh" id="BoxMesh_chewe"]
+size = Vector3(20, 0.5, 20)
+
+[node name="TestArena" type="Node3D" unique_id=942245743]
+script = ExtResource("1_qdrqe")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=266682723]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1099800704]
+shape = SubResource("BoxShape3D_chewe")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=1479023403]
+mesh = SubResource("BoxMesh_chewe")
+
+[node name="Player" parent="." unique_id=260684512 instance=ExtResource("1_goyld")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.948, 2, 0.316)

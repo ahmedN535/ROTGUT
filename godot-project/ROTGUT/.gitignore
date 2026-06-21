@@ -1,0 +1,19 @@
+# Godot-specific
+.godot/
+*.translation
+
+# Exported builds
+*.exe
+*.x86_64
+*.x86
+*.arm64-v8a
+*.armeabi-v7a
+*.pck
+*.apk
+*.aab
+web/
+export/
+
+# OS-generated
+.DS_Store
+Thumbs.db

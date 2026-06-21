@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://drj5l6cuickqd"]
+
+[ext_resource type="Script" uid="uid://cx1ravreglgev" path="res://entities/player/player.gd" id="1_symyc"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_chewe"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" unique_id=260684512]
+script = ExtResource("1_symyc")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1482513842]
+shape = SubResource("CapsuleShape3D_chewe")
+
+[node name="Head" type="Node3D" parent="." unique_id=1903859874]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+
+[node name="PlayerCamera" type="Camera3D" parent="Head" unique_id=926763673]
+unique_name_in_owner = true
