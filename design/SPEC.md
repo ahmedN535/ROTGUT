@@ -26,11 +26,15 @@ Movement is the hardest and most rewarding skill in the game. It has a high skil
 | **Air strafing** | Mouse + A/D mid-air to redirect and gain momentum. Feels wrong at first, right once learned. |
 | **Double jump** | Second jump in mid-air — can be used to extend bhop chains or recover. |
 | **Dash** | A directional burst with weight and impact. NOT a teleport. Adds to existing momentum — dash while fast and you get faster. |
-| **Wall ride** | Run along vertical surfaces to carry speed and reach new geometry. |
+| **Slide** | Hold crouch while moving fast to slide: low friction, locked direction, small entry boost. Decays into a normal crouch when it runs out of speed. Chains into ramps and bhops. |
+| **Crouch** | Hold crouch while slow/still. Reduced speed, lowered camera. Capped below slide-entry speed so it can't self-trigger a slide. |
+| **Wall ride** | Run along vertical surfaces to carry speed and reach new geometry. Wall jump launches away + up and refreshes air jumps. |
 | **Jump boost** | Boost pad / geometry interaction that launches the player upward with speed carry. |
 | **Rocket jump** | Fire a rocket at your feet and ride the explosion blast. Requires health cost or risk. |
 
 Movement should feel **wrong when you're bad** and **euphoric when you're good**. Bhop in particular should have a detectable learning curve (like CSGO) not just feel good from frame one.
+
+> **Controls:** WASD move, Space jump (double-jump in air), Shift dash, Ctrl crouch/slide. Sprint was cut — a single base speed plus the movement techs replaces it (momentum games don't need a sprint).
 
 ### Pillar 2 — Speed Scales Power
 Movement speed directly affects combat effectiveness. A player who is flowing does more damage.
