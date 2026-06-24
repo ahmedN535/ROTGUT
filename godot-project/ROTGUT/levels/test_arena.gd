@@ -13,6 +13,9 @@ func _ready() -> void:
 	_add_ramps()
 	_add_platforms()
 	_add_walls()
+	_add_grapple_points()
+	_add_jump_pads()
+	_add_targets()
 
 
 func _add_environment() -> void:
@@ -75,3 +78,41 @@ func _add_walls() -> void:
 	_box(Vector3(1, 10, 30), Vector3(22, 5, 0), COLOR_WALL)
 	_box(Vector3(1, 10, 30), Vector3(-22, 5, 0), COLOR_WALL)
 	_box(Vector3(14, 2, 1), Vector3(0, 1, -8), COLOR_WALL)
+
+
+func _add_grapple_points() -> void:
+	# Tall pylons + a high beam to swing from. You grapple any geometry, but the
+	# swing only shines with high anchors, so the arena needs some overhead mass.
+	_box(Vector3(1.5, 16, 1.5), Vector3(10, 8, -2), COLOR_WALL)
+	_box(Vector3(1.5, 16, 1.5), Vector3(-10, 8, -2), COLOR_WALL)
+	_box(Vector3(22, 1, 1.5), Vector3(0, 15, -2), COLOR_RAMP)   # beam between the pylons
+	_box(Vector3(1.5, 22, 1.5), Vector3(0, 11, 34), COLOR_WALL)  # far pylon toward the platforms
+
+
+func _add_jump_pads() -> void:
+	var positions := [
+		Vector3(6, 0.2, -14),
+		Vector3(-6, 0.2, -14),
+		Vector3(0, 0.2, 26),
+	]
+	for pos in positions:
+		var pad := JumpPad.new()
+		add_child(pad)
+		pad.position = pos
+
+
+func _add_targets() -> void:
+	# Targets sit with their base on the surface (box is 2 tall, so center +1).
+	var positions := [
+		Vector3(0, 1, 14),       # straight ahead on the floor
+		Vector3(10, 1, 8),
+		Vector3(-10, 1, 8),
+		Vector3(16, 1, -4),
+		Vector3(-16, 1, -4),
+		Vector3(0, 4.5, 16),     # on the first platform
+		Vector3(-18, 5.5, -10),  # on the big platform
+	]
+	for pos in positions:
+		var target := TargetDummy.new()
+		add_child(target)
+		target.position = pos

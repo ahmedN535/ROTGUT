@@ -29,12 +29,15 @@ Movement is the hardest and most rewarding skill in the game. It has a high skil
 | **Slide** | Hold crouch while moving fast to slide: low friction, locked direction, small entry boost. Decays into a normal crouch when it runs out of speed. Chains into ramps and bhops. |
 | **Crouch** | Hold crouch while slow/still. Reduced speed, lowered camera. Capped below slide-entry speed so it can't self-trigger a slide. |
 | **Wall ride** | Run along vertical surfaces to carry speed and reach new geometry. Wall jump launches away + up and refreshes air jumps. |
+| **Swing hook** | A grappling hook that **swings**, not reels. Fire at an anchor point; while attached the player becomes a pendulum — radial velocity converts to tangential, so a well-timed release slings you out fast. Complements bhop/air-strafe; rewards reading geometry. Needs anchor points in level design to shine (see note below). |
 | **Jump boost** | Boost pad / geometry interaction that launches the player upward with speed carry. |
 | **Rocket jump** | Fire a rocket at your feet and ride the explosion blast. Requires health cost or risk. |
 
 Movement should feel **wrong when you're bad** and **euphoric when you're good**. Bhop in particular should have a detectable learning curve (like CSGO) not just feel good from frame one.
 
-> **Controls:** WASD move, Space jump (double-jump in air), Shift dash, Ctrl crouch/slide. Sprint was cut — a single base speed plus the movement techs replaces it (momentum games don't need a sprint).
+> **Controls:** WASD move, Space jump (double-jump in air), Shift dash, Ctrl crouch/slide, left-click fire. Sprint was cut — a single base speed plus the movement techs replaces it (momentum games don't need a sprint).
+
+> **Swing hook — sequencing note.** The hook is a core identity mechanic (movement is Pillar 1, and the player wanted it from the start). But a pendulum swing is only fun with **high anchor points to swing from** — it's dead weight in a flat arena. Plan: prototype the *feel* soon by adding a few tall anchor pylons/overhangs to the test arena, then refine once real levels are designed with swing lines in mind. Implementation is physics-heavier than the other techs (a rope-length constraint converting radial→tangential velocity each frame), so it gets its own focused milestone rather than being bolted onto an existing step.
 
 ### Pillar 2 — Speed Scales Power
 Movement speed directly affects combat effectiveness. A player who is flowing does more damage.
@@ -42,6 +45,8 @@ Movement speed directly affects combat effectiveness. A player who is flowing do
 - **Speed → Damage multiplier.** The faster you're moving when you fire, the more damage your shot deals. A standing shot is weak. A bhop shot is lethal.
 - This means camping and standing still are mechanically punished. Aggression is optimal.
 - The exact formula is TBD (will tune in playtesting) but the *feeling* is: "I need to keep moving or I'm useless."
+
+> **Refinement (planned).** The prototype ships a wide speed→damage spread (x1.0–x4.0). Once the combo meter (Pillar 3) exists, **tone the speed multiplier down** (likely cap ~x2) so it's a *modest mechanical edge*, not the whole reward. The big dopamine and visual escalation should come from the combo system, which tracks more than just speed. Two separate systems: speed→damage (mechanical) and combo (dopamine/visual/score). They overlap but aren't the same meter.
 
 ### Pillar 3 — Combo Escalation (The Dopamine Loop)
 Kills, movement speed, and style chain into a **combo multiplier** that escalates visual feedback.
@@ -59,6 +64,21 @@ Kills, movement speed, and style chain into a **combo multiplier** that escalate
 | MAX | Full visual frenzy — weapon looks completely transformed, every kill is an explosion of effects |
 
 The goal: the player *sees* how well they're doing at all times, not just reads a number. Numbers can exist (score, multiplier) but the **visual language is the primary feedback**.
+
+#### Refinement — the "dopamine sliders" multi-meter (planned)
+Instead of one combo number, track several **independent meters that each fill from a different good behavior**, then feed them into one overall **style rank** (think ULTRAKILL's D→SSS or DMC ranks) that drives the visual frenzy. Candidate sliders:
+
+| Slider | Fills when | Drains/resets when |
+|---|---|---|
+| **Speed** | Maintaining high velocity | Slowing down / stopping |
+| **Accuracy** | Landing hits | Missing a shot |
+| **Untouched** | Not taking damage | Getting hit (big drain or reset) |
+| **Variety / style** | Using *different* techs + weapons | Spamming one thing (anti-monotony, ULTRAKILL-style) |
+| **Kill chain** | Kills in quick succession | Time passing without a kill |
+
+- The combined rank is what escalates the on-screen visuals (the table above) and likely feeds run score / meta-currency.
+- Why multiple sliders: a single meter is easy to game by doing one thing. Several sliders that each reward a different axis push the player to do *everything well at once* — fast, accurate, untouched, varied. That's the "getting good" fantasy.
+- Open: exact slider set, weighting, decay rates, and whether style grants a tangible reward (heal-on-style like ULTRAKILL? bonus currency?). Tune once enemies exist so there's something to be stylish against. Ties into the meta-progression open question.
 
 ---
 
