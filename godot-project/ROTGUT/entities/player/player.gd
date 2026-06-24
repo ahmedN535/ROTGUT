@@ -15,9 +15,10 @@ const JUMP_BUFFER_TIME: float = 0.12
 const MAX_JUMPS: int = 2
 
 # --- Dash ---
-const DASH_SPEED: float = 28.0
+const DASH_SPEED: float = 70
 const DASH_COOLDOWN: float = 1.0
-const DASH_DURATION: float = 0.25  # window where ground friction is off so the burst carries
+const DASH_DURATION: float = 0.2  # window where ground friction is off so the burst carries
+
 
 # --- Crouch / Slide ---
 const CROUCH_CAM_OFFSET: float = -0.35
@@ -111,6 +112,8 @@ var _glow_pulse: float = 0.0
 var _rank_pop_label: Label
 var _rank_pop_tween: Tween
 var _last_rank: int = 0
+var _dash_dir := Vector3.ZERO
+
 
 
 func _ready() -> void:
@@ -468,8 +471,7 @@ func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
 func _do_dash(wish_dir: Vector3) -> void:
 	var dash_dir := wish_dir if wish_dir != Vector3.ZERO else -transform.basis.z
 	dash_dir = Vector3(dash_dir.x, 0.0, dash_dir.z).normalized()
-	velocity.x += dash_dir.x * DASH_SPEED
-	velocity.z += dash_dir.z * DASH_SPEED
+	_dash_dir = dash_dir # store direction for use in _process/_physics_process
 	_dash_cooldown = DASH_COOLDOWN
 	_dash_timer = DASH_DURATION
 	_fov_dash_bonus = FOV_DASH_BONUS
