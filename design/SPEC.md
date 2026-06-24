@@ -237,4 +237,14 @@ Build in this order. Do not start the next step until the current one is playabl
 
 ---
 
-*Last updated: 2026-06-21 | Status: APPROVED — ready to plan*
+## Enemies — design direction
+
+First enemy (**melee rusher**) uses *direct steering* (walk straight at the player), no pathfinding — fine for the open test arena.
+
+**Deferred to the real-level phase:**
+- **Pathfinding** — upgrade grounded enemies to `NavigationAgent3D` + a baked navmesh once levels have walls/obstacles to route around. Localized change thanks to the `Enemy` base class.
+- **Verticality** — do NOT make rushers jump. The player is highly mobile (bhop, grapple, jump pads), so cover the air with **enemy variety** instead: grounded rushers hold the floor, flying enemies threaten air space, ranged enemies punish camping anywhere. Mobility should be rewarded but never a free win.
+
+---
+
+*Last updated: 2026-06-24 | Status: APPROVED — building combat*

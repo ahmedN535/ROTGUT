@@ -65,6 +65,9 @@ const RECOIL_KICK: float = 0.045    # radians of upward pitch per shot
 const RECOIL_RECOVER: float = 12.0
 const RECOIL_FOV_PUNCH: float = 6.0
 
+# --- Health ---
+const MAX_HEALTH: float = 100.0
+
 @onready var _head: Node3D = %Head
 @onready var _camera: Camera3D = %PlayerCamera
 
@@ -93,10 +96,18 @@ var _grapple_anchor: Vector3 = Vector3.ZERO
 var _rope_length: float = 0.0
 var _rope_mesh: MeshInstance3D
 
+var _health: float = MAX_HEALTH
+var _spawn_position: Vector3 = Vector3.ZERO
+var _health_label: Label
+var _damage_overlay: ColorRect
+
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_head_base_y = _head.position.y
+	add_to_group("player")  # so enemies can find us via get_first_node_in_group
+	_spawn_position = global_position
+	_health = MAX_HEALTH
 	_setup_hud()
 	_setup_weapon()
 	_setup_rope()
@@ -121,6 +132,21 @@ func _setup_hud() -> void:
 	crosshair.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	crosshair.grow_vertical = Control.GROW_DIRECTION_BOTH
 	canvas.add_child(crosshair)
+
+	# Health readout
+	_health_label = Label.new()
+	_health_label.position = Vector2(16, 72)
+	_health_label.add_theme_font_size_override("font_size", 20)
+	_health_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
+	canvas.add_child(_health_label)
+
+	# Full-screen red flash when hurt
+	_damage_overlay = ColorRect.new()
+	_damage_overlay.color = Color(0.8, 0.0, 0.0, 0.0)
+	_damage_overlay.anchor_right = 1.0
+	_damage_overlay.anchor_bottom = 1.0
+	_damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(_damage_overlay)
 
 	add_child(canvas)
 
@@ -150,6 +176,31 @@ func apply_jump_pad(force: float) -> void:
 	_jumps_left = MAX_JUMPS
 	_is_grappling = false
 	_fov_dash_bonus = maxf(_fov_dash_bonus, 10.0)
+
+
+# Called by enemies dealing damage.
+func take_damage(amount: float) -> void:
+	if _health <= 0.0:
+		return
+	_health -= amount
+	_flash_damage()
+	if _health <= 0.0:
+		_die()
+
+
+func _flash_damage() -> void:
+	_damage_overlay.color.a = 0.5
+	var tween := create_tween()
+	tween.tween_property(_damage_overlay, "color:a", 0.0, 0.4)
+
+
+func _die() -> void:
+	# Simple respawn for now — back to spawn, full health, movement state cleared.
+	global_position = _spawn_position
+	velocity = Vector3.ZERO
+	_health = MAX_HEALTH
+	_is_grappling = false
+	_is_sliding = false
 
 
 func _input(event: InputEvent) -> void:
@@ -260,9 +311,10 @@ func _physics_process(delta: float) -> void:
 	var dash_status := "READY" if _dash_cooldown <= 0.0 else "%.1fs" % _dash_cooldown
 	var hook_tag := "   [HOOK]" if _is_grappling else ""
 	_speed_label.text = "Speed: %.1f   Dash: %s%s\nDMG x%.1f   %s" % [
-		horiz_speed, dash_status, hook_tag, mult, _tier_name(tier)
+		horiz_speed, dash_status, hook_tag, mult, CombatFX.tier_name(tier)
 	]
-	_speed_label.modulate = _tier_color(tier)
+	_speed_label.modulate = CombatFX.tier_color(tier)
+	_health_label.text = "HP: %d" % roundi(_health)
 
 
 func _start_slide() -> void:
@@ -454,19 +506,3 @@ func _damage_tier(mult: float) -> int:
 	elif mult < 3.5:
 		return 2
 	return 3
-
-
-func _tier_name(tier: int) -> String:
-	match tier:
-		0: return "COLD"
-		1: return "WARM"
-		2: return "HOT"
-		_: return "BLAZING"
-
-
-func _tier_color(tier: int) -> Color:
-	match tier:
-		0: return Color(0.85, 0.85, 0.85)
-		1: return Color(1.0, 0.9, 0.3)
-		2: return Color(1.0, 0.55, 0.15)
-		_: return Color(1.0, 0.25, 0.2)

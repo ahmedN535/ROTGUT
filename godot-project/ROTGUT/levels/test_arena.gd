@@ -16,6 +16,7 @@ func _ready() -> void:
 	_add_grapple_points()
 	_add_jump_pads()
 	_add_targets()
+	_add_enemies()
 
 
 func _add_environment() -> void:
@@ -116,3 +117,15 @@ func _add_targets() -> void:
 		var target := TargetDummy.new()
 		add_child(target)
 		target.position = pos
+
+
+func _add_enemies() -> void:
+	var positions := [
+		Vector3(12, 1.2, 12),
+		Vector3(-12, 1.2, 12),
+		Vector3(0, 1.2, -20),
+	]
+	for pos in positions:
+		var rusher := MeleeRusher.new()
+		add_child(rusher)
+		rusher.position = pos
