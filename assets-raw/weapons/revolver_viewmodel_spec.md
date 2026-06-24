@@ -48,11 +48,13 @@ wobble/grime shader. So:
    `revolver_blockout` collection: drum, barrel, underlug, frame_rear, rib, 2 sights, hammer, grip.
    Script is idempotent (wipes the collection before rebuilding) — but only re-run it BEFORE
    you start hand-editing, or it'll wipe your edits.
-   > Interim blockout exported for early in-engine scale testing (2026-06-23). User re-exported
-   > their own version as `../godot-project/ROTGUT/weapons/revolver.glb` and is wiring it via the
-   > code session. Untextured; placeholder material only.
-   > NOTE: the source `.blend` (`Untitled.blend`) currently sits INSIDE the Godot project's
-   > weapons folder — per the pipeline it should live here in `assets-raw/weapons/` instead.
+   > Source of truth: `assets-raw/weapons/revolver.blend` (14 pieces incl. hand-added muzzle,
+   > undermuzzel, undergrip, trigger, trigger_guard). Exported untextured to
+   > `../godot-project/ROTGUT/weapons/revolver.glb` (2026-06-24).
+   > KNOWN ISSUE: `undergrip` mesh is CORRUPT (loop data references out-of-range verts —
+   > "index 254 / size 28"; displays fine but breaks glTF export). Current `.glb` EXCLUDES it
+   > (13 of 14 pieces). Must be rebuilt/cleaned in the source before it can be exported.
+   > Export helper: `_export_to_godot.py` (has EXCLUDE={"undergrip"} — remove once fixed).
 2. **Refine forms in edit mode** — learn the real tools here. First hand-modeling tasks:
    - **Trigger guard loop** + **trigger** (deliberately left out of the blockout — good first exercise).
    - **Cylinder flutes** — model 3-4 big triangular flutes, paint the rest.
