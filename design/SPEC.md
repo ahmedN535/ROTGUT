@@ -176,6 +176,34 @@ assets-raw/              # Raw .blend, .psd files (with .gdignore)
 
 ---
 
+## Team & Collaboration
+
+Two people now: **Ahmed** (lead — core systems & gameplay) and **Tom** (joined 2026-06-24 — levels/maps). Repo: private GitHub at github.com/ahmedN535/ROTGUT.
+
+### Split by folder, not by feature
+The #1 collaboration hazard in Godot is two people editing the **same scene file** — `.tscn` files merge badly. So we divide by **ownership of folders**, so we rarely touch the same files:
+
+| Area | Owner | Paths |
+|---|---|---|
+| Levels / maps / environment | **Tom** | `levels/`, level geometry, per-level lighting & layout |
+| Player, enemies, weapons, combat, combo, FX | **Ahmed** | `entities/`, `weapons/`, `common/` |
+| The spec | Ahmed (Tom proposes) | `design/SPEC.md` |
+| Inputs & autoloads | **Coordinate first** | `project.godot` |
+| Art sources / exports | Ahmed (art session) | `assets-raw/`, exported `.glb` |
+
+Cross-domain help is fine as a one-off (e.g. Tom reworked the dash), but **changes to someone's owned area should be flagged first** so they don't collide with in-flight work.
+
+### The level interface (set this up so Tom isn't blocked)
+Right now gameplay objects (enemies, jump pads, targets) are spawned by **code** in `test_arena.gd` — Tom can't place them in a hand-built map. **Near-term enabling task:** package player / enemy / jump_pad / target as instanceable **scenes** (`.tscn`) and define a simple **Level** convention (a player spawn point + drag-in enemy/pad/target/grapple nodes). Then Tom authors maps in the editor against a stable "place these nodes" contract, without touching core scripts.
+
+### Git workflow
+- **`git pull` before starting** each session; **push small, focused commits often** so the other sees changes fast.
+- Never edit the same scene at the same time — give a heads-up on what you're touching.
+- Use a short-lived **branch** for anything big/experimental; commit small stuff straight to `master`.
+- `.godot/` cache is git-ignored — never commit it. The repo root is the project folder (not `E:\`).
+
+---
+
 ## Code Style (GDScript)
 
 Static typing enforced throughout:
