@@ -15,7 +15,7 @@ const JUMP_BUFFER_TIME: float = 0.12
 const MAX_JUMPS: int = 2
 
 # --- Dash ---
-const DASH_SPEED: float = 70
+const DASH_SPEED: float = 45  # total speed the dash adds over its window (ramped, not instant)
 const DASH_COOLDOWN: float = 1.0
 const DASH_DURATION: float = 0.2  # window where ground friction is off so the burst carries
 
@@ -329,6 +329,19 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= grav * delta
 		if _is_wall_riding:
 			velocity.y = maxf(velocity.y, WALL_FALL_CAP)
+
+	# Dash — accelerate along the locked direction over the dash window, easing in
+	# so the burst builds up instead of popping flat (Tom's design). Friction is off
+	# during this window (see _ground_move), so the speed carries. The merge had
+	# dropped this block, so dashing did nothing — restored + corrected here.
+	if _dash_timer > 0.0:
+		var dash_t := 1.0 - (_dash_timer / DASH_DURATION)   # 0 -> 1 across the window
+		var dash_ease := 0.5 + dash_t * dash_t              # ramps up (0.5 -> 1.5)
+		# Normalize by the ease integral (integral of 0.5+t^2 over 0..1 = 0.8333) so
+		# the total speed gained equals DASH_SPEED regardless of the curve shape.
+		var dash_accel := DASH_SPEED / (DASH_DURATION * 0.8333)
+		velocity.x += _dash_dir.x * dash_accel * dash_ease * delta
+		velocity.z += _dash_dir.z * dash_accel * dash_ease * delta
 
 	# Jump — three cases: ground, wall, double
 	if _jump_buffer > 0.0 and is_on_floor():
