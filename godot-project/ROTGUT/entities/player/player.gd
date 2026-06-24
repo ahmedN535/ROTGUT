@@ -100,6 +100,9 @@ var _health: float = MAX_HEALTH
 var _spawn_position: Vector3 = Vector3.ZERO
 var _health_label: Label
 var _damage_overlay: ColorRect
+var _combo_label: Label
+var _combo_bar_bg: ColorRect
+var _combo_bar_fill: ColorRect
 
 
 func _ready() -> void:
@@ -139,6 +142,23 @@ func _setup_hud() -> void:
 	_health_label.add_theme_font_size_override("font_size", 20)
 	_health_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
 	canvas.add_child(_health_label)
+
+	# Combo / style meter — rank name + a fill bar
+	_combo_label = Label.new()
+	_combo_label.position = Vector2(16, 104)
+	_combo_label.add_theme_font_size_override("font_size", 26)
+	canvas.add_child(_combo_label)
+
+	_combo_bar_bg = ColorRect.new()
+	_combo_bar_bg.position = Vector2(16, 140)
+	_combo_bar_bg.size = Vector2(220, 14)
+	_combo_bar_bg.color = Color(0.1, 0.1, 0.1, 0.55)
+	canvas.add_child(_combo_bar_bg)
+
+	_combo_bar_fill = ColorRect.new()
+	_combo_bar_fill.position = Vector2(16, 140)
+	_combo_bar_fill.size = Vector2(0, 14)
+	canvas.add_child(_combo_bar_fill)
 
 	# Full-screen red flash when hurt
 	_damage_overlay = ColorRect.new()
@@ -184,6 +204,7 @@ func take_damage(amount: float) -> void:
 		return
 	_health -= amount
 	_flash_damage()
+	Combo.on_player_hurt()  # getting hit drains your style hard
 	if _health <= 0.0:
 		_die()
 
@@ -315,6 +336,13 @@ func _physics_process(delta: float) -> void:
 	]
 	_speed_label.modulate = CombatFX.tier_color(tier)
 	_health_label.text = "HP: %d" % roundi(_health)
+
+	var combo_rank := Combo.get_rank()
+	var combo_col := CombatFX.tier_color(mini(combo_rank, 3))
+	_combo_label.text = Combo.get_rank_name()
+	_combo_label.add_theme_color_override("font_color", combo_col)
+	_combo_bar_fill.size.x = 220.0 * (Combo.get_points() / ComboSystem.MAX_POINTS)
+	_combo_bar_fill.color = combo_col
 
 
 func _start_slide() -> void:

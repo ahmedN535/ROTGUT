@@ -80,6 +80,8 @@ Instead of one combo number, track several **independent meters that each fill f
 - Why multiple sliders: a single meter is easy to game by doing one thing. Several sliders that each reward a different axis push the player to do *everything well at once* — fast, accurate, untouched, varied. That's the "getting good" fantasy.
 - Open: exact slider set, weighting, decay rates, and whether style grants a tangible reward (heal-on-style like ULTRAKILL? bonus currency?). Tune once enemies exist so there's something to be stylish against. Ties into the meta-progression open question.
 
+> **v1 status & known issue.** Combo v1 is built (kills + speed → one rank + HUD bar). Known tuning bug: because high speed *adds* style, you can bhop in circles to max the meter without fighting. Fix later by making speed **sustain only** (halt decay, don't build) or capping the speed-only contribution a rank or two below MAX so the top ranks require kills.
+
 ---
 
 ## Game Structure (Roguelite)
@@ -108,6 +110,24 @@ Inspired by ULTRAKILL: distinct weapons that feel completely different from each
 - Rocket launcher is required (enables rocket jumping — mechanical not just combat).
 - Exact weapon roster TBD during weapon phase of development.
 - Weapons likely found/switched during runs (not a loadout you bring in).
+
+### Combat economy — candidate direction (DEFERRED, not scheduled)
+
+A strong way to deliver "weight and impact": make **ammo scarce and melee the engine**.
+
+- **Melee is primary.** You're mostly punching/swinging in close, which keeps you moving and aggressive (reinforces Pillars 1–3 instead of competing with them).
+- **Kills grant ammo/charges.** Killing (via melee) earns a bullet or a "charge" for the gun.
+- **The gun is a scarce finisher.** A charged shot is devastating (one-shots, or does something unique) — but you only get shots by earning them.
+- **Missing is punishing** (Quake / Redliner feel). A wasted charge hurts, so the gun rewards the *aiming* skill ceiling the way movement rewards the *movement* ceiling. An earned one-shot lands harder psychologically than spammable fire.
+- Camping dies: you must close in and stay mobile to feed the economy.
+
+**What it introduces / open interactions (resolve when building):**
+- A **melee mechanic** — doesn't exist yet; this is the main new chunk of work.
+- **Speed → damage** overlap: does speed boost melee? Affect ammo gained per kill? (Don't let two systems do the same job — see the speed→damage refinement note in Pillar 2.)
+- **Combo**: melee kills feed style; ammo could itself be a resource/slider.
+- Inspirations to study: ULTRAKILL (melee + coin + blood-on-melee health economy), Redliner (ammo-from-kills, punishing misses).
+
+> Decision pending. This may become a core combat pillar or stay a single-weapon gimmick. Revisit after the basic weapon + enemy + combo loop is proven (we're roughly there now).
 
 ---
 

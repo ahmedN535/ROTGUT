@@ -54,6 +54,7 @@ func take_damage(amount: float, _multiplier: float, tier: int, hit_pos: Vector3)
 	CombatFX.spawn_damage_number(get_tree().current_scene, hit_pos, amount, tier)
 	_flash()
 	if _health <= 0.0:
+		Combo.add_kill(tier)  # faster (higher-tier) kills feed more style
 		_die()
 
 
