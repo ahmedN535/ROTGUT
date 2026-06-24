@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://ctr6tpyoynppo"]
+
+[ext_resource type="Script" uid="uid://cndmoqmmofykx" path="res://levels/level.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://drj5l6cuickqd" path="res://entities/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://entities/enemy/melee_rusher.tscn" id="3_vmt1o"]
+[ext_resource type="PackedScene" path="res://entities/jump_pad/jump_pad.tscn" id="4_da5si"]
+
+[node name="Level" type="Node3D" unique_id=112725912]
+script = ExtResource("1_script")
+
+[node name="Floor" type="CSGBox3D" parent="." unique_id=1366498153]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+use_collision = true
+size = Vector3(1000, 1, 1000)
+
+[node name="Player" parent="." unique_id=1577120551 instance=ExtResource("2_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+
+[node name="MeleeRusher" parent="." unique_id=1573282690 instance=ExtResource("3_vmt1o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.241699, 0.9000002, -3.2360063)
+
+[node name="MeleeRusher2" parent="." unique_id=1626400949 instance=ExtResource("3_vmt1o")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.334854, 0.9, -3.3092427)
+
+[node name="JumpPad" parent="." unique_id=546946751 instance=ExtResource("4_da5si")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0473466, 0.005837083, -7.8580656)

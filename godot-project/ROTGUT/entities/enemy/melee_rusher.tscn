@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://entities/enemy/melee_rusher.gd" id="1_script"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="mesh"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="mat"]
+resource_local_to_scene = true
+albedo_color = Color(0.5, 0.2, 0.55, 1)
+
+[node name="MeleeRusher" type="CharacterBody3D"]
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("shape")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+material_override = SubResource("mat")
+mesh = SubResource("mesh")

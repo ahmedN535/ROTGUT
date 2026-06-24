@@ -3,6 +3,7 @@ extends Enemy
 
 ## The first enemy: sprints straight at the player and hits on contact. Forces you
 ## to keep moving — standing still gets you caught and chipped down.
+## Its look (purple capsule) is defined in melee_rusher.tscn.
 
 const MOVE_SPEED: float = 8.0
 const ATTACK_RANGE: float = 1.7
@@ -10,11 +11,6 @@ const ATTACK_DAMAGE: float = 12.0
 const ATTACK_COOLDOWN: float = 0.8
 
 var _attack_timer: float = 0.0
-
-
-func _build_body() -> void:
-	_base_color = Color(0.5, 0.2, 0.55)  # purple, distinct from the red target dummies
-	super()
 
 
 func _physics_process(delta: float) -> void:

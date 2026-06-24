@@ -1,36 +1,23 @@
 class_name TargetDummy
 extends StaticBody3D
 
-## A shootable practice target. Builds its own collision + mesh in code so it
-## can be spawned anywhere without a scene. On hit it flashes, spawns a rising
-## damage number colored by tier, and respawns a moment after dying.
+## A shootable practice target. Geometry lives in target_dummy.tscn; on hit it
+## flashes, spawns a tiered damage number, and respawns a moment after dying.
+## The mesh material is resource_local_to_scene so each target flashes on its own.
 
 const MAX_HEALTH: float = 100.0
 const RESPAWN_TIME: float = 2.0
-const SIZE: Vector3 = Vector3(1.2, 2.0, 1.2)
 const BASE_COLOR: Color = Color(0.7, 0.2, 0.2)
+
+@onready var _mesh: MeshInstance3D = $Mesh
 
 var _health: float = MAX_HEALTH
 var _alive: bool = true
-var _mesh: MeshInstance3D
 var _material: StandardMaterial3D
 
 
 func _ready() -> void:
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = SIZE
-	shape.shape = box
-	add_child(shape)
-
-	_mesh = MeshInstance3D.new()
-	var box_mesh := BoxMesh.new()
-	box_mesh.size = SIZE
-	_mesh.mesh = box_mesh
-	_material = StandardMaterial3D.new()
-	_material.albedo_color = BASE_COLOR
-	_mesh.material_override = _material
-	add_child(_mesh)
+	_material = _mesh.material_override as StandardMaterial3D
 
 
 func take_damage(amount: float, _multiplier: float, tier: int, hit_pos: Vector3) -> void:

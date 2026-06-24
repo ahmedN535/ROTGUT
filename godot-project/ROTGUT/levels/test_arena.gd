@@ -1,14 +1,28 @@
-extends Node3D
+extends Level
+
+## A code-built level used to test movement and combat. Geometry is generated with
+## CSG boxes; gameplay objects are instanced from their scenes (the same scenes Tom
+## drags into hand-built maps). Sky + sun come from the Level base.
 
 const COLOR_FLOOR := Color(0.22, 0.28, 0.22)
 const COLOR_RAMP := Color(0.35, 0.30, 0.20)
 const COLOR_PLATFORM := Color(0.28, 0.22, 0.18)
 const COLOR_WALL := Color(0.18, 0.18, 0.22)
 
+const MELEE_RUSHER := preload("res://entities/enemy/melee_rusher.tscn")
+const JUMP_PAD := preload("res://entities/jump_pad/jump_pad.tscn")
+const TARGET_DUMMY := preload("res://entities/target/target_dummy.tscn")
+
+const ENEMY_RESPAWN_DELAY: float = 2.5
+const ENEMY_SPAWNS := [
+	Vector3(12, 1.2, 12),
+	Vector3(-12, 1.2, 12),
+	Vector3(0, 1.2, -20),
+]
+
 
 func _ready() -> void:
-	_add_environment()
-	_add_lighting()
+	super._ready()  # sky + sun from the Level base
 	_add_floor()
 	_add_ramps()
 	_add_platforms()
@@ -17,27 +31,6 @@ func _ready() -> void:
 	_add_jump_pads()
 	_add_targets()
 	_add_enemies()
-
-
-func _add_environment() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.4, 0.55, 0.7)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.5, 0.55, 0.6)
-	env.ambient_light_energy = 0.6
-
-	var world_env := WorldEnvironment.new()
-	world_env.environment = env
-	add_child(world_env)
-
-
-func _add_lighting() -> void:
-	var light := DirectionalLight3D.new()
-	light.rotation_degrees = Vector3(-50, -30, 0)
-	light.light_energy = 1.2
-	light.shadow_enabled = true
-	add_child(light)
 
 
 func _make_mat(color: Color) -> StandardMaterial3D:
@@ -96,8 +89,8 @@ func _add_jump_pads() -> void:
 		Vector3(-6, 0.2, -14),
 		Vector3(0, 0.2, 26),
 	]
-	for pos in positions:
-		var pad := JumpPad.new()
+	for pos: Vector3 in positions:
+		var pad := JUMP_PAD.instantiate() as JumpPad
 		add_child(pad)
 		pad.position = pos
 
@@ -113,18 +106,10 @@ func _add_targets() -> void:
 		Vector3(0, 4.5, 16),     # on the first platform
 		Vector3(-18, 5.5, -10),  # on the big platform
 	]
-	for pos in positions:
-		var target := TargetDummy.new()
+	for pos: Vector3 in positions:
+		var target := TARGET_DUMMY.instantiate() as TargetDummy
 		add_child(target)
 		target.position = pos
-
-
-const ENEMY_RESPAWN_DELAY: float = 2.5
-const ENEMY_SPAWNS := [
-	Vector3(12, 1.2, 12),
-	Vector3(-12, 1.2, 12),
-	Vector3(0, 1.2, -20),
-]
 
 
 func _add_enemies() -> void:
@@ -133,7 +118,7 @@ func _add_enemies() -> void:
 
 
 func _spawn_rusher(pos: Vector3) -> void:
-	var rusher := MeleeRusher.new()
+	var rusher := MELEE_RUSHER.instantiate() as MeleeRusher
 	add_child(rusher)
 	rusher.position = pos
 	# When it dies, queue a fresh one at the same spot — keeps the arena stocked.

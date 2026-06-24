@@ -193,8 +193,16 @@ The #1 collaboration hazard in Godot is two people editing the **same scene file
 
 Cross-domain help is fine as a one-off (e.g. Tom reworked the dash), but **changes to someone's owned area should be flagged first** so they don't collide with in-flight work.
 
-### The level interface (set this up so Tom isn't blocked)
-Right now gameplay objects (enemies, jump pads, targets) are spawned by **code** in `test_arena.gd` — Tom can't place them in a hand-built map. **Near-term enabling task:** package player / enemy / jump_pad / target as instanceable **scenes** (`.tscn`) and define a simple **Level** convention (a player spawn point + drag-in enemy/pad/target/grapple nodes). Then Tom authors maps in the editor against a stable "place these nodes" contract, without touching core scripts.
+### The level interface (DONE — how to author a map)
+Gameplay objects are now instanceable **scenes** with their own geometry, so they appear and can be dragged into a level in the editor:
+- `entities/enemy/melee_rusher.tscn`
+- `entities/jump_pad/jump_pad.tscn`
+- `entities/target/target_dummy.tscn`
+- Grapple anchors are just geometry — build tall pylons/beams, no special node.
+
+A level scene's root extends the **`Level`** base (`levels/level.gd`), which supplies the shared sky + sun. **To make a new map:** duplicate `levels/level_base.tscn`, build/replace the geometry, drag the entity scenes from the FileSystem dock into it, and move the **Player** node to the spawn point (the player respawns wherever it starts). No core scripts to touch — Tom owns the level scene, Ahmed owns the systems those scenes use.
+
+`test_arena.tscn` is the worked example: it `extends Level` and instances the same entity scenes from code (its geometry is procedural CSG).
 
 ### Git workflow
 - **`git pull` before starting** each session; **push small, focused commits often** so the other sees changes fast.

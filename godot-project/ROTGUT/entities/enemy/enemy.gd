@@ -3,8 +3,12 @@ extends CharacterBody3D
 
 ## Base for all enemies. Handles the shared guts: health, taking damage (the same
 ## take_damage contract the weapon calls on any target), the hit flash, and death.
-## Movement and attack behavior live in subclasses (see melee_rusher.gd) so adding
-## a new enemy type is "extend Enemy + add a _physics_process".
+## Movement and attack behavior live in subclasses (see melee_rusher.gd).
+##
+## Geometry (collision + mesh + material) lives in the entity's .tscn so it can be
+## seen and placed in the editor. Each scene's mesh sets its own colour, which this
+## base reads for the flash. The mesh material is resource_local_to_scene, so each
+## instance flashes independently.
 
 signal died
 
@@ -12,38 +16,20 @@ const GRAVITY: float = 24.0
 
 @export var max_health: float = 50.0
 
+@onready var _mesh: MeshInstance3D = $Mesh
+
 var _health: float = 0.0
 var _alive: bool = true
 var _player: Node3D
-var _mesh: MeshInstance3D
 var _material: StandardMaterial3D
-var _base_color: Color = Color(0.35, 0.5, 0.3)
+var _base_color: Color = Color.WHITE
 
 
 func _ready() -> void:
 	_health = max_health
 	_player = get_tree().get_first_node_in_group("player") as Node3D
-	_build_body()
-
-
-# Subclasses can override to change shape/look; default is a sickly capsule.
-func _build_body() -> void:
-	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = 0.4
-	capsule.height = 1.8
-	shape.shape = capsule
-	add_child(shape)
-
-	_mesh = MeshInstance3D.new()
-	var capsule_mesh := CapsuleMesh.new()
-	capsule_mesh.radius = 0.4
-	capsule_mesh.height = 1.8
-	_mesh.mesh = capsule_mesh
-	_material = StandardMaterial3D.new()
-	_material.albedo_color = _base_color
-	_mesh.material_override = _material
-	add_child(_mesh)
+	_material = _mesh.material_override as StandardMaterial3D
+	_base_color = _material.albedo_color
 
 
 # Same signature the weapon calls on any hittable thing.

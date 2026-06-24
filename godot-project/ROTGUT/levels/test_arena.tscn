@@ -7,7 +7,7 @@
 size = Vector3(20, 0.5, 20)
 
 [sub_resource type="BoxMesh" id="BoxMesh_chewe"]
-size = Vector3(20, 0.5, 20)
+size = Vector3(1000, 0.5, 10000)
 
 [node name="TestArena" type="Node3D" unique_id=942245743]
 script = ExtResource("1_qdrqe")
