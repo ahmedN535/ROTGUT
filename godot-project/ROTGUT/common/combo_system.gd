@@ -12,12 +12,11 @@ extends Node
 signal rank_changed(rank: int)
 
 const MAX_POINTS: float = 120.0
-const KILL_POINTS: float = 22.0      # base style per kill
-const TIER_BONUS: float = 8.0        # extra per speed tier at the moment of the kill
+const KILL_POINTS: float = 30.0      # base style per kill — kills are the driver
+const TIER_BONUS: float = 12.0       # extra per speed tier at the moment of the kill
 const DECAY_PER_SEC: float = 12.0    # bleed-off when slow and not killing
 const DAMAGE_DRAIN: float = 40.0     # style lost per hit taken
-const FAST_SPEED: float = 18.0       # at/above this, speed sustains the combo
-const SPEED_TRICKLE: float = 6.0     # small style/sec while fast — sustains more than it builds
+const FAST_SPEED: float = 18.0       # at/above this, speed SUSTAINS the combo (halts decay)
 
 # Points needed for each rank, with ROTGUT-flavored names (rank 0 shows nothing).
 # First kill (>= KILL_POINTS) should land you at rank 1 for instant feedback.
@@ -33,9 +32,11 @@ func _process(delta: float) -> void:
 	if _player == null:
 		_player = get_tree().get_first_node_in_group("player") as CharacterBody3D
 
-	if _player != null and _horizontal_speed() >= FAST_SPEED:
-		_add(SPEED_TRICKLE * delta)  # flowing keeps the combo alive between kills
-	else:
+	# Moving fast SUSTAINS the combo (halts decay) but no longer builds it — kills
+	# are the only thing that climbs rank. Stops you maxing out by just falling or
+	# bhopping in circles.
+	var flowing := _player != null and _horizontal_speed() >= FAST_SPEED
+	if not flowing:
 		_points = maxf(_points - DECAY_PER_SEC * delta, 0.0)
 
 	_recalc_rank()

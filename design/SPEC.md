@@ -80,7 +80,7 @@ Instead of one combo number, track several **independent meters that each fill f
 - Why multiple sliders: a single meter is easy to game by doing one thing. Several sliders that each reward a different axis push the player to do *everything well at once* — fast, accurate, untouched, varied. That's the "getting good" fantasy.
 - Open: exact slider set, weighting, decay rates, and whether style grants a tangible reward (heal-on-style like ULTRAKILL? bonus currency?). Tune once enemies exist so there's something to be stylish against. Ties into the meta-progression open question.
 
-> **v1 status & known issue.** Combo v1 is built (kills + speed → one rank + HUD bar). Known tuning bug: because high speed *adds* style, you can bhop in circles to max the meter without fighting. Fix later by making speed **sustain only** (halt decay, don't build) or capping the speed-only contribution a rank or two below MAX so the top ranks require kills.
+> **v1 status.** Combo v1 is built with visual escalation (kills → rank → HUD bar + screen-edge glow + rank-up punch). **Kills are the driver**; moving fast only *sustains* the meter (halts decay), it no longer builds it — so you can't max rank by falling off the map or bhopping in circles. Kill values (`KILL_POINTS`/`TIER_BONUS` in combo_system.gd) still open to tuning. Remaining sliders (accuracy, untouched-streak, variety) are still TODO.
 
 ---
 

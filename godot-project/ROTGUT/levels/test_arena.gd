@@ -119,13 +119,26 @@ func _add_targets() -> void:
 		target.position = pos
 
 
+const ENEMY_RESPAWN_DELAY: float = 2.5
+const ENEMY_SPAWNS := [
+	Vector3(12, 1.2, 12),
+	Vector3(-12, 1.2, 12),
+	Vector3(0, 1.2, -20),
+]
+
+
 func _add_enemies() -> void:
-	var positions := [
-		Vector3(12, 1.2, 12),
-		Vector3(-12, 1.2, 12),
-		Vector3(0, 1.2, -20),
-	]
-	for pos in positions:
-		var rusher := MeleeRusher.new()
-		add_child(rusher)
-		rusher.position = pos
+	for pos: Vector3 in ENEMY_SPAWNS:
+		_spawn_rusher(pos)
+
+
+func _spawn_rusher(pos: Vector3) -> void:
+	var rusher := MeleeRusher.new()
+	add_child(rusher)
+	rusher.position = pos
+	# When it dies, queue a fresh one at the same spot — keeps the arena stocked.
+	rusher.died.connect(_on_rusher_died.bind(pos))
+
+
+func _on_rusher_died(pos: Vector3) -> void:
+	get_tree().create_timer(ENEMY_RESPAWN_DELAY).timeout.connect(_spawn_rusher.bind(pos))
