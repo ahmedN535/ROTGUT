@@ -37,7 +37,7 @@ const WALL_TILT_MAX: float = 8.0
 
 # --- Grapple (swing hook) ---
 const GRAPPLE_RANGE: float = 40.0
-const GRAPPLE_AIR_ACCEL: float = 35.0   # how hard you can pump the swing
+const GRAPPLE_REEL_SPEED: float = 5
 const GRAPPLE_MIN_LENGTH: float = 2.0
 
 # --- Camera feel ---
@@ -94,8 +94,10 @@ var _recoil_pitch: float = 0.0
 
 var _is_grappling: bool = false
 var _grapple_anchor: Vector3 = Vector3.ZERO
-var _rope_length: float = 0.0
+var _rope_max_length: float = 0.0   # the ceiling — starts at hook distance, decreases when reeling
+var _rope_length: float = 0.0       # current distance to anchor (can be less than max)
 var _rope_mesh: MeshInstance3D
+var _grapple_release_timer: float = 0.0
 
 var _health: float = MAX_HEALTH
 var _spawn_position: Vector3 = Vector3.ZERO
@@ -319,7 +321,13 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor() and not _just_jumped:
 		_jumps_left = MAX_JUMPS
+		
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 
+	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0 and not _is_grappling:
+		_do_dash(wish_dir)
+		
 	if Input.is_action_just_pressed("jump"):
 		_jump_buffer = JUMP_BUFFER_TIME
 
@@ -334,7 +342,7 @@ func _physics_process(delta: float) -> void:
 	# so the burst builds up instead of popping flat (Tom's design). Friction is off
 	# during this window (see _ground_move), so the speed carries. The merge had
 	# dropped this block, so dashing did nothing — restored + corrected here.
-	if _dash_timer > 0.0:
+	if _dash_timer > 0.0 and not _is_grappling:
 		var dash_t := 1.0 - (_dash_timer / DASH_DURATION)   # 0 -> 1 across the window
 		var dash_ease := 0.5 + dash_t * dash_t              # ramps up (0.5 -> 1.5)
 		# Normalize by the ease integral (integral of 0.5+t^2 over 0..1 = 0.8333) so
@@ -342,6 +350,7 @@ func _physics_process(delta: float) -> void:
 		var dash_accel := DASH_SPEED / (DASH_DURATION * 0.8333)
 		velocity.x += _dash_dir.x * dash_accel * dash_ease * delta
 		velocity.z += _dash_dir.z * dash_accel * dash_ease * delta
+		
 
 	# Jump — three cases: ground, wall, double
 	if _jump_buffer > 0.0 and is_on_floor():
@@ -363,9 +372,6 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_VELOCITY
 		_jumps_left -= 1
 
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-
 	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0:
 		_do_dash(wish_dir)
 
@@ -374,6 +380,7 @@ func _physics_process(delta: float) -> void:
 		_try_grapple()
 	if _is_grappling and not Input.is_action_pressed("grapple"):
 		_is_grappling = false
+		_grapple_release_timer = 2.0  # seconds of reduced friction
 
 	# Slide — crouch while moving fast on the ground
 	var crouch_held := Input.is_action_pressed("crouch")
@@ -390,17 +397,13 @@ func _physics_process(delta: float) -> void:
 	var ground_speed := CROUCH_SPEED if (crouch_held and not _is_sliding) else WALK_SPEED
 
 	if _is_grappling:
-		_grapple_move(wish_dir, delta)
+		_grapple_move(delta)
 	elif is_on_floor() and not _just_jumped:
 		_ground_move(wish_dir, ground_speed, delta)
 	else:
 		_air_move(wish_dir, WALK_SPEED, delta)
 
 	move_and_slide()
-
-	if _is_grappling:
-		_constrain_rope_position()
-
 	_update_wall_ride()
 	_update_rope()
 
@@ -457,13 +460,15 @@ func _update_wall_ride() -> void:
 
 
 func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
-	# Friction is off during the dash window so the burst carries; otherwise low
-	# while sliding, normal while walking.
+	_grapple_release_timer -= delta  # tick it down here
+
 	var friction := GROUND_FRICTION
 	if _is_sliding:
 		friction = SLIDE_FRICTION
 	elif _dash_timer > 0.0:
 		friction = 0.0
+	elif _grapple_release_timer > 0.0:
+		friction = GROUND_FRICTION * 0.15  # 15% friction for a couple secs after releasing
 
 	var spd := Vector2(velocity.x, velocity.z).length()
 	if spd > 0.5:
@@ -491,7 +496,6 @@ func _do_dash(wish_dir: Vector3) -> void:
 
 
 func _try_grapple() -> void:
-	# Raycast from the camera; attach to whatever the crosshair is on, in range.
 	var space := get_world_3d().direct_space_state
 	var origin := _camera.global_position
 	var dir := -_camera.global_transform.basis.z
@@ -500,46 +504,49 @@ func _try_grapple() -> void:
 	var result := space.intersect_ray(query)
 	if not result:
 		return
-	var anchor: Vector3 = result.position
-	var length := global_position.distance_to(anchor)
+	var length := global_position.distance_to(result.position)
 	if length < GRAPPLE_MIN_LENGTH:
 		return
-	_grapple_anchor = anchor
+	_grapple_anchor = result.position
+	_rope_max_length = length
 	_rope_length = length
 	_is_grappling = true
+	_dash_timer = 0.0
+	_dash_cooldown = DASH_COOLDOWN  # lock dash while grappling
 
 
-func _grapple_move(wish_dir: Vector3, delta: float) -> void:
-	# Gravity was already applied this frame — that's the energy that drives the
-	# swing. Here we (1) let the player pump with air control, then (2) apply the
-	# rope constraint that keeps only the tangential (swinging) motion.
-	if wish_dir != Vector3.ZERO:
-		velocity += wish_dir * GRAPPLE_AIR_ACCEL * delta
+func _grapple_move(delta: float) -> void:
+	if Input.is_action_pressed("ui_shift") and _rope_max_length > GRAPPLE_MIN_LENGTH:
+		_rope_max_length = maxf(_rope_max_length - GRAPPLE_REEL_SPEED * delta, GRAPPLE_MIN_LENGTH)
+		# Push velocity toward anchor to actually move the player
+		var to_anchor := (_grapple_anchor - global_position).normalized()
+		velocity += to_anchor * GRAPPLE_REEL_SPEED
 
+	if is_on_floor():
+		var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+		_ground_move(wish_dir, WALK_SPEED, delta)
+
+	_apply_rope_constraint(delta)
+	
+func _apply_rope_constraint(delta: float) -> void:
 	var to_anchor := _grapple_anchor - global_position
 	var dist := to_anchor.length()
-	if dist < 0.01:
+	if dist < 0.001:
 		return
-	var dir := to_anchor / dist  # unit vector pointing at the anchor
 
-	# When the rope is taut, cancel any velocity pulling AWAY from the anchor.
-	# That converts "falling away" into "swinging around" — the pendulum.
-	if dist >= _rope_length:
-		var radial := velocity.dot(dir)  # + toward anchor, - away from it
-		if radial < 0.0:
-			velocity -= dir * radial
+	var rope_dir := to_anchor / dist
 
+	if dist < _rope_max_length:
+		_rope_length = dist
+		return
 
-func _constrain_rope_position() -> void:
-	# Soft-correct any drift so the rope length stays honest (move_and_slide can
-	# nudge us slightly off the swing arc each frame).
-	var to_anchor := _grapple_anchor - global_position
-	var dist := to_anchor.length()
-	if dist > _rope_length:
-		var dir := to_anchor / dist
-		var target := _grapple_anchor - dir * _rope_length
-		global_position = global_position.lerp(target, 0.5)
+	_rope_length = _rope_max_length
 
+	# Only cancel velocity moving away from anchor, keep all tangential momentum
+	var radial_vel := velocity.dot(-rope_dir)
+	if radial_vel > 0.0:
+		velocity += rope_dir * radial_vel
 
 func _update_rope() -> void:
 	if not _is_grappling:
