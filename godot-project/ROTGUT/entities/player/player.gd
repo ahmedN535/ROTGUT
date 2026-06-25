@@ -15,10 +15,9 @@ const JUMP_BUFFER_TIME: float = 0.12
 const MAX_JUMPS: int = 2
 
 # --- Dash ---
-const DASH_SPEED: float = 45  # total speed the dash adds over its window (ramped, not instant)
+const DASH_SPEED: float = 45
 const DASH_COOLDOWN: float = 1.0
-const DASH_DURATION: float = 0.2  # window where ground friction is off so the burst carries
-
+const DASH_DURATION: float = 0.2
 
 # --- Crouch / Slide ---
 const CROUCH_CAM_OFFSET: float = -0.35
@@ -35,13 +34,13 @@ const WALL_JUMP_V: float = 8.5
 const WALL_RIDE_COOLDOWN: float = 0.3
 const WALL_TILT_MAX: float = 8.0
 
-# --- Grapple (physics pull hook, Redliner-style) ---
+# --- Grapple ---
 const GRAPPLE_RANGE: float = 40.0
-const GRAPPLE_MIN_LENGTH: float = 2.0        # auto-release once you reach the anchor
-const GRAPPLE_PULL_ACCEL: float = 70.0      # pull toward anchor when slow (the yoink)
-const GRAPPLE_PULL_FALLOFF: float = 30.0     # speed at which the pull fades to its minimum
-const GRAPPLE_MIN_PULL: float = 0.2          # pull factor at high speed (pure redirection)
-const GRAPPLE_AIR_CONTROL: float = 25.0      # light steering while hooked (no reel button)
+const GRAPPLE_MIN_LENGTH: float = 2.0
+const GRAPPLE_PULL_ACCEL: float = 120.0
+const GRAPPLE_PULL_FALLOFF: float = 30.0
+const GRAPPLE_MIN_PULL: float = 0.4
+const GRAPPLE_AIR_CONTROL: float = 25.0
 
 # --- Camera feel ---
 const FOV_BASE: float = 90.0
@@ -57,15 +56,13 @@ const BOB_FREQ: float = 1.8
 const BOB_AMP: float = 0.025
 
 # --- Speed -> damage ---
-# Multiplier scales smoothly from MIN (standing) to MAX (flying). It's shown to
-# one decimal (e.g. x3.5); the discrete TIER it falls into drives the visuals.
 const DMG_MULT_MIN: float = 1.0
 const DMG_MULT_MAX: float = 4.0
 const DMG_SPEED_MIN: float = 8.0
 const DMG_SPEED_MAX: float = 38.0
 
-# --- Recoil (on the camera, not the weapon model) ---
-const RECOIL_KICK: float = 0.045    # radians of upward pitch per shot
+# --- Recoil ---
+const RECOIL_KICK: float = 0.045
 const RECOIL_RECOVER: float = 12.0
 const RECOIL_FOV_PUNCH: float = 6.0
 
@@ -82,6 +79,7 @@ var _just_jumped: bool = false
 var _jumps_left: int = MAX_JUMPS
 var _dash_cooldown: float = 0.0
 var _dash_timer: float = 0.0
+var _dash_dir: Vector3 = Vector3.ZERO
 var _fov_dash_bonus: float = 0.0
 var _bob_time: float = 0.0
 var _speed_label: Label
@@ -115,28 +113,28 @@ var _glow_pulse: float = 0.0
 var _rank_pop_label: Label
 var _rank_pop_tween: Tween
 var _last_rank: int = 0
-var _dash_dir := Vector3.ZERO
-
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_head_base_y = _head.position.y
-	add_to_group("player")  # so enemies can find us via get_first_node_in_group
+	add_to_group("player")
 	_spawn_position = global_position
 	_health = MAX_HEALTH
+	floor_stop_on_slope = true
+	floor_snap_length = 0.3
+	floor_max_angle = deg_to_rad(46.0)
+	wall_min_slide_angle = deg_to_rad(15.0)
+	motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
 	_setup_hud()
 	_setup_weapon()
 	_setup_rope()
-	Combo.rank_changed.connect(_on_rank_changed)  # drive the rank-up punch
+	Combo.rank_changed.connect(_on_rank_changed)
 
 
 func _setup_hud() -> void:
 	var canvas := CanvasLayer.new()
 
-	# Combo escalation — a screen-edge glow that ramps with rank. Behind the HUD
-	# text (added first = drawn underneath). Center stays clear so it never
-	# obscures the crosshair.
 	_glow_overlay = ColorRect.new()
 	_glow_overlay.anchor_right = 1.0
 	_glow_overlay.anchor_bottom = 1.0
@@ -159,7 +157,6 @@ func _setup_hud() -> void:
 	_speed_label.position = Vector2(16, 16)
 	canvas.add_child(_speed_label)
 
-	# Crosshair — a simple centered "+"
 	var crosshair := Label.new()
 	crosshair.text = "+"
 	crosshair.add_theme_font_size_override("font_size", 28)
@@ -172,14 +169,12 @@ func _setup_hud() -> void:
 	crosshair.grow_vertical = Control.GROW_DIRECTION_BOTH
 	canvas.add_child(crosshair)
 
-	# Health readout
 	_health_label = Label.new()
 	_health_label.position = Vector2(16, 72)
 	_health_label.add_theme_font_size_override("font_size", 20)
 	_health_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
 	canvas.add_child(_health_label)
 
-	# Combo / style meter — rank name + a fill bar
 	_combo_label = Label.new()
 	_combo_label.position = Vector2(16, 104)
 	_combo_label.add_theme_font_size_override("font_size", 26)
@@ -196,7 +191,6 @@ func _setup_hud() -> void:
 	_combo_bar_fill.size = Vector2(0, 14)
 	canvas.add_child(_combo_bar_fill)
 
-	# Full-screen red flash when hurt
 	_damage_overlay = ColorRect.new()
 	_damage_overlay.color = Color(0.8, 0.0, 0.0, 0.0)
 	_damage_overlay.anchor_right = 1.0
@@ -204,7 +198,6 @@ func _setup_hud() -> void:
 	_damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(_damage_overlay)
 
-	# Rank-up pop — big rank name that flashes center-screen on a new rank (top of stack)
 	_rank_pop_label = Label.new()
 	_rank_pop_label.add_theme_font_size_override("font_size", 64)
 	_rank_pop_label.anchor_left = 0.5
@@ -221,16 +214,14 @@ func _setup_hud() -> void:
 
 
 func _setup_weapon() -> void:
-	# Parented to the camera, so it always fires straight down the crosshair.
 	_weapon = Weapon.new()
 	_camera.add_child(_weapon)
 
 
 func _setup_rope() -> void:
-	# A line drawn in world space from the gun to the grapple anchor.
 	_rope_mesh = MeshInstance3D.new()
 	_rope_mesh.mesh = ImmediateMesh.new()
-	_rope_mesh.top_level = true  # use world space, ignore the player's transform
+	_rope_mesh.top_level = true
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = Color(0.95, 0.85, 0.4)
@@ -239,7 +230,6 @@ func _setup_rope() -> void:
 	add_child(_rope_mesh)
 
 
-# Called by JumpPad when the player touches it — launch up, keep horizontal speed.
 func apply_jump_pad(force: float) -> void:
 	velocity.y = force
 	_jumps_left = MAX_JUMPS
@@ -247,13 +237,12 @@ func apply_jump_pad(force: float) -> void:
 	_fov_dash_bonus = maxf(_fov_dash_bonus, 10.0)
 
 
-# Called by enemies dealing damage.
 func take_damage(amount: float) -> void:
 	if _health <= 0.0:
 		return
 	_health -= amount
 	_flash_damage()
-	Combo.on_player_hurt()  # getting hit drains your style hard
+	Combo.on_player_hurt()
 	if _health <= 0.0:
 		_die()
 
@@ -265,7 +254,6 @@ func _flash_damage() -> void:
 
 
 func _die() -> void:
-	# Simple respawn for now — back to spawn, full health, movement state cleared.
 	global_position = _spawn_position
 	velocity = Vector3.ZERO
 	_health = MAX_HEALTH
@@ -274,7 +262,6 @@ func _die() -> void:
 
 
 func _on_rank_changed(rank: int) -> void:
-	# Punch only when climbing to a new, higher rank.
 	if rank > _last_rank and rank > 0:
 		_rank_pop_label.text = Combo.get_rank_name()
 		_rank_pop_label.add_theme_color_override("font_color", CombatFX.tier_color(mini(rank, 3)))
@@ -283,14 +270,12 @@ func _on_rank_changed(rank: int) -> void:
 			_rank_pop_tween.kill()
 		_rank_pop_tween = create_tween()
 		_rank_pop_tween.tween_property(_rank_pop_label, "modulate:a", 0.0, 0.7).set_ease(Tween.EASE_IN)
-		_glow_pulse = 0.45                                # bright flash that settles
-		_fov_dash_bonus = maxf(_fov_dash_bonus, 8.0)      # small FOV kick
+		_glow_pulse = 0.45
+		_fov_dash_bonus = maxf(_fov_dash_bonus, 8.0)
 	_last_rank = rank
 
 
 func _update_escalation(delta: float) -> void:
-	# Screen-edge glow ramps smoothly toward a per-rank target; the pulse adds a
-	# transient spike on rank-up that decays back down.
 	var rank := Combo.get_rank()
 	var target := minf(rank * 0.16, 0.65)
 	_glow_intensity = lerpf(_glow_intensity, target, 4.0 * delta)
@@ -308,7 +293,6 @@ func _input(event: InputEvent) -> void:
 			deg_to_rad(89.0)
 		)
 		transform.basis = Basis(Vector3.UP, _yaw)
-		# Head pitch (with recoil) is rebuilt every physics frame, not here.
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
@@ -322,38 +306,34 @@ func _physics_process(delta: float) -> void:
 
 	if is_on_floor() and not _just_jumped:
 		_jumps_left = MAX_JUMPS
-		
+
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 
 	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0 and not _is_grappling:
 		_do_dash(wish_dir)
-		
+
 	if Input.is_action_just_pressed("jump"):
 		_jump_buffer = JUMP_BUFFER_TIME
 
-	# Gravity — suppressed while wall riding
+	# Gravity
 	if not is_on_floor():
 		var grav := WALL_RIDE_GRAVITY if _is_wall_riding else GRAVITY
+		if _is_grappling:
+			grav *= 0.3
 		velocity.y -= grav * delta
 		if _is_wall_riding:
 			velocity.y = maxf(velocity.y, WALL_FALL_CAP)
 
-	# Dash — accelerate along the locked direction over the dash window, easing in
-	# so the burst builds up instead of popping flat (Tom's design). Friction is off
-	# during this window (see _ground_move), so the speed carries. The merge had
-	# dropped this block, so dashing did nothing — restored + corrected here.
+	# Dash acceleration
 	if _dash_timer > 0.0 and not _is_grappling:
-		var dash_t := 1.0 - (_dash_timer / DASH_DURATION)   # 0 -> 1 across the window
-		var dash_ease := 0.5 + dash_t * dash_t              # ramps up (0.5 -> 1.5)
-		# Normalize by the ease integral (integral of 0.5+t^2 over 0..1 = 0.8333) so
-		# the total speed gained equals DASH_SPEED regardless of the curve shape.
+		var dash_t := 1.0 - (_dash_timer / DASH_DURATION)
+		var dash_ease := 0.5 + dash_t * dash_t
 		var dash_accel := DASH_SPEED / (DASH_DURATION * 0.8333)
 		velocity.x += _dash_dir.x * dash_accel * dash_ease * delta
 		velocity.z += _dash_dir.z * dash_accel * dash_ease * delta
-		
 
-	# Jump — three cases: ground, wall, double
+	# Jump
 	if _jump_buffer > 0.0 and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 		_jump_buffer = 0.0
@@ -373,28 +353,21 @@ func _physics_process(delta: float) -> void:
 		velocity.y = JUMP_VELOCITY
 		_jumps_left -= 1
 
-	if Input.is_action_just_pressed("dash") and _dash_cooldown <= 0.0:
-		_do_dash(wish_dir)
-
-	# Grapple — hold to swing, release to fly off
+	# Grapple
 	if Input.is_action_just_pressed("grapple"):
 		_try_grapple()
 	if _is_grappling and not Input.is_action_pressed("grapple"):
 		_is_grappling = false
-		_grapple_release_timer = 2.0  # seconds of reduced friction
+		_grapple_release_timer = 2.0
 
-	# Slide — crouch while moving fast on the ground
+	# Slide
 	var crouch_held := Input.is_action_pressed("crouch")
 	var pre_horiz_speed := Vector2(velocity.x, velocity.z).length()
-
 	if crouch_held and is_on_floor() and pre_horiz_speed > SLIDE_MIN_SPEED and not _is_sliding:
 		_start_slide()
 	elif _is_sliding and (not crouch_held or not is_on_floor() or pre_horiz_speed < SLIDE_MIN_SPEED):
-		# Slide bottomed out (or you let go) — drop into a normal crouch so you can move again
 		_is_sliding = false
 
-	# Crouch-walk is capped below slide-entry speed, so you can never self-trigger a
-	# slide just by walking — a new slide needs an external boost (bhop, dash, ramp).
 	var ground_speed := CROUCH_SPEED if (crouch_held and not _is_sliding) else WALK_SPEED
 
 	if _is_grappling:
@@ -404,7 +377,20 @@ func _physics_process(delta: float) -> void:
 	else:
 		_air_move(wish_dir, WALK_SPEED, delta)
 
+	# Glue player to floor
+	if is_on_floor() and not _just_jumped:
+		velocity.y = maxf(velocity.y, -2.0)
+
 	move_and_slide()
+
+	# Kill bounce on collision surfaces
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		var normal := col.get_normal()
+		var vel_into := velocity.dot(-normal)
+		if vel_into > 0.0:
+			velocity += normal * vel_into
+
 	_update_wall_ride()
 	_update_rope()
 
@@ -413,10 +399,9 @@ func _physics_process(delta: float) -> void:
 	_update_camera_feel(delta, horiz_speed, is_crouching)
 	_update_escalation(delta)
 
-	# Shoot — damage is scaled by how fast you're moving right now
 	var mult := _damage_multiplier(horiz_speed)
 	var tier := _damage_tier(mult)
-	
+
 	if Input.is_action_just_pressed("fire") and _weapon.fire(mult, tier, get_rid()):
 		_apply_recoil()
 
@@ -456,7 +441,6 @@ func _update_wall_ride() -> void:
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		var normal := col.get_normal()
-		# Normal is roughly vertical = floor/ceiling. Nearly horizontal = wall.
 		if abs(normal.y) < 0.3:
 			_is_wall_riding = true
 			_wall_normal = normal
@@ -465,7 +449,7 @@ func _update_wall_ride() -> void:
 
 
 func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
-	_grapple_release_timer -= delta  # tick it down here
+	_grapple_release_timer -= delta
 
 	var friction := GROUND_FRICTION
 	if _is_sliding:
@@ -473,7 +457,7 @@ func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
 	elif _dash_timer > 0.0:
 		friction = 0.0
 	elif _grapple_release_timer > 0.0:
-		friction = GROUND_FRICTION * 0.15  # 15% friction for a couple secs after releasing
+		friction = GROUND_FRICTION * 0.15
 
 	var spd := Vector2(velocity.x, velocity.z).length()
 	if spd > 0.5:
@@ -484,7 +468,6 @@ func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
 		velocity.x = 0.0
 		velocity.z = 0.0
 
-	# No steering input during a slide — direction is locked on entry
 	if not _is_sliding and wish_dir != Vector3.ZERO:
 		var current_speed := velocity.dot(wish_dir)
 		var add_speed := clampf(wish_speed - current_speed, 0.0, GROUND_ACCEL * delta)
@@ -494,7 +477,7 @@ func _ground_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
 func _do_dash(wish_dir: Vector3) -> void:
 	var dash_dir := wish_dir if wish_dir != Vector3.ZERO else -transform.basis.z
 	dash_dir = Vector3(dash_dir.x, 0.0, dash_dir.z).normalized()
-	_dash_dir = dash_dir # store direction for use in _process/_physics_process
+	_dash_dir = dash_dir
 	_dash_cooldown = DASH_COOLDOWN
 	_dash_timer = DASH_DURATION
 	_fov_dash_bonus = FOV_DASH_BONUS
@@ -515,29 +498,25 @@ func _try_grapple() -> void:
 	_grapple_anchor = result.position
 	_is_grappling = true
 	_dash_timer = 0.0
-	_dash_cooldown = DASH_COOLDOWN  # lock dash while grappling
+	_dash_cooldown = DASH_COOLDOWN
 
 
 func _grapple_move(delta: float) -> void:
 	var to_anchor := _grapple_anchor - global_position
 	var dist := to_anchor.length()
 	if dist < GRAPPLE_MIN_LENGTH:
-		_is_grappling = false  # reached the anchor — let go so you fly off with the speed
+		_is_grappling = false
 		return
 	var dir := to_anchor / dist
-
-	# Pull toward the anchor, but the faster you already move the LESS it pulls:
-	# slow = a big yoink that builds speed, fast = gentle redirection so you keep
-	# your momentum and curve around the point. (Gravity still applies, from above.)
 	var speed := velocity.length()
 	var pull_factor := clampf(1.0 - speed / GRAPPLE_PULL_FALLOFF, GRAPPLE_MIN_PULL, 1.0)
 	velocity += dir * GRAPPLE_PULL_ACCEL * pull_factor * delta
 
-	# Light air control so you can steer the redirect — no reel button to hold.
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	if wish_dir != Vector3.ZERO:
 		velocity += wish_dir * GRAPPLE_AIR_CONTROL * delta
+
 
 func _update_rope() -> void:
 	if not _is_grappling:
@@ -567,17 +546,14 @@ func _air_move(wish_dir: Vector3, wish_speed: float, delta: float) -> void:
 
 
 func _update_camera_feel(delta: float, horiz_speed: float, is_crouching: bool) -> void:
-	# Recoil — kick recovers toward 0; head pitch is rebuilt here every frame
 	_recoil_pitch = lerpf(_recoil_pitch, 0.0, RECOIL_RECOVER * delta)
 	_head.transform.basis = Basis(Vector3.RIGHT, _pitch + _recoil_pitch)
 
-	# FOV — scales with speed, spikes on dash
 	var speed_t := clampf(horiz_speed / FOV_SPEED_SCALE, 0.0, 1.0)
 	var target_fov := lerpf(FOV_BASE, FOV_MAX, speed_t) + _fov_dash_bonus
 	_camera.fov = lerpf(_camera.fov, target_fov, FOV_LERP * delta)
 	_fov_dash_bonus = lerpf(_fov_dash_bonus, 0.0, 10.0 * delta)
 
-	# Tilt — strafe on ground, wall lean while wall riding
 	var target_tilt: float
 	if _is_wall_riding:
 		var wall_side := _wall_normal.dot(-transform.basis.x)
@@ -587,11 +563,9 @@ func _update_camera_feel(delta: float, horiz_speed: float, is_crouching: bool) -
 		target_tilt = -strafe * TILT_MAX
 	_camera.rotation_degrees.z = lerpf(_camera.rotation_degrees.z, target_tilt, TILT_SPEED * delta)
 
-	# Head height — drops when crouching or sliding
 	var head_y_target := _head_base_y + (CROUCH_CAM_OFFSET if (is_crouching or _is_sliding) else 0.0)
 	_head.position.y = lerpf(_head.position.y, head_y_target, 12.0 * delta)
 
-	# Head bob — off while sliding
 	if is_on_floor() and horiz_speed > 1.0 and not _is_sliding:
 		_bob_time += delta * horiz_speed * BOB_FREQ
 		_camera.position.y = sin(_bob_time) * BOB_AMP * clampf(horiz_speed / WALK_SPEED, 0.0, 1.0)

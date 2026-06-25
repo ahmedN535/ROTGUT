@@ -5,6 +5,14 @@
 [ext_resource type="PackedScene" path="res://entities/enemy/melee_rusher.tscn" id="3_vmt1o"]
 [ext_resource type="PackedScene" path="res://entities/jump_pad/jump_pad.tscn" id="4_da5si"]
 
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bmmn1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2yj0c"]
+size = Vector3(5, 5, 5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2yj0c"]
+size = Vector3(5, 5, 5)
+
 [node name="Level" type="Node3D" unique_id=112725912]
 script = ExtResource("1_script")
 
@@ -24,3 +32,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.334854, 0.9, -3.3092427)
 
 [node name="JumpPad" parent="." unique_id=546946751 instance=ExtResource("4_da5si")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0473466, 0.005837083, -7.8580656)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="." unique_id=2005970738]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.4543123, 17.771053, 17.610449)
+physics_material_override = SubResource("PhysicsMaterial_bmmn1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D" unique_id=1766905150]
+shape = SubResource("BoxShape3D_2yj0c")
+debug_color = Color(0.4627451, 0.5529412, 0.5803922, 1)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D" unique_id=1412572698]
+mesh = SubResource("BoxMesh_2yj0c")
