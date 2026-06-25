@@ -35,10 +35,13 @@ const WALL_JUMP_V: float = 8.5
 const WALL_RIDE_COOLDOWN: float = 0.3
 const WALL_TILT_MAX: float = 8.0
 
-# --- Grapple (swing hook) ---
+# --- Grapple (physics pull hook, Redliner-style) ---
 const GRAPPLE_RANGE: float = 40.0
-const GRAPPLE_REEL_SPEED: float = 5
-const GRAPPLE_MIN_LENGTH: float = 2.0
+const GRAPPLE_MIN_LENGTH: float = 2.0        # auto-release once you reach the anchor
+const GRAPPLE_PULL_ACCEL: float = 70.0      # pull toward anchor when slow (the yoink)
+const GRAPPLE_PULL_FALLOFF: float = 30.0     # speed at which the pull fades to its minimum
+const GRAPPLE_MIN_PULL: float = 0.2          # pull factor at high speed (pure redirection)
+const GRAPPLE_AIR_CONTROL: float = 25.0      # light steering while hooked (no reel button)
 
 # --- Camera feel ---
 const FOV_BASE: float = 90.0
@@ -94,8 +97,6 @@ var _recoil_pitch: float = 0.0
 
 var _is_grappling: bool = false
 var _grapple_anchor: Vector3 = Vector3.ZERO
-var _rope_max_length: float = 0.0   # the ceiling — starts at hook distance, decreases when reeling
-var _rope_length: float = 0.0       # current distance to anchor (can be less than max)
 var _rope_mesh: MeshInstance3D
 var _grapple_release_timer: float = 0.0
 
@@ -512,45 +513,31 @@ func _try_grapple() -> void:
 	if length < GRAPPLE_MIN_LENGTH:
 		return
 	_grapple_anchor = result.position
-	_rope_max_length = length
-	_rope_length = length
 	_is_grappling = true
 	_dash_timer = 0.0
 	_dash_cooldown = DASH_COOLDOWN  # lock dash while grappling
 
 
 func _grapple_move(delta: float) -> void:
-	if Input.is_action_pressed("ui_shift") and _rope_max_length > GRAPPLE_MIN_LENGTH:
-		_rope_max_length = maxf(_rope_max_length - GRAPPLE_REEL_SPEED * delta, GRAPPLE_MIN_LENGTH)
-		# Push velocity toward anchor to actually move the player
-		var to_anchor := (_grapple_anchor - global_position).normalized()
-		velocity += to_anchor * GRAPPLE_REEL_SPEED
-
-	if is_on_floor():
-		var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-		var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-		_ground_move(wish_dir, WALK_SPEED, delta)
-
-	_apply_rope_constraint(delta)
-	
-func _apply_rope_constraint(delta: float) -> void:
 	var to_anchor := _grapple_anchor - global_position
 	var dist := to_anchor.length()
-	if dist < 0.001:
+	if dist < GRAPPLE_MIN_LENGTH:
+		_is_grappling = false  # reached the anchor — let go so you fly off with the speed
 		return
+	var dir := to_anchor / dist
 
-	var rope_dir := to_anchor / dist
+	# Pull toward the anchor, but the faster you already move the LESS it pulls:
+	# slow = a big yoink that builds speed, fast = gentle redirection so you keep
+	# your momentum and curve around the point. (Gravity still applies, from above.)
+	var speed := velocity.length()
+	var pull_factor := clampf(1.0 - speed / GRAPPLE_PULL_FALLOFF, GRAPPLE_MIN_PULL, 1.0)
+	velocity += dir * GRAPPLE_PULL_ACCEL * pull_factor * delta
 
-	if dist < _rope_max_length:
-		_rope_length = dist
-		return
-
-	_rope_length = _rope_max_length
-
-	# Only cancel velocity moving away from anchor, keep all tangential momentum
-	var radial_vel := velocity.dot(-rope_dir)
-	if radial_vel > 0.0:
-		velocity += rope_dir * radial_vel
+	# Light air control so you can steer the redirect — no reel button to hold.
+	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var wish_dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	if wish_dir != Vector3.ZERO:
+		velocity += wish_dir * GRAPPLE_AIR_CONTROL * delta
 
 func _update_rope() -> void:
 	if not _is_grappling:
