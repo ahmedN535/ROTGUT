@@ -415,8 +415,12 @@ func _physics_process(delta: float) -> void:
 	# Shoot — damage is scaled by how fast you're moving right now
 	var mult := _damage_multiplier(horiz_speed)
 	var tier := _damage_tier(mult)
+	
 	if Input.is_action_just_pressed("fire") and _weapon.fire(mult, tier, get_rid()):
 		_apply_recoil()
+
+	if Input.is_action_just_pressed("reload"):
+		_weapon.reload()
 
 	var dash_status := "READY" if _dash_cooldown <= 0.0 else "%.1fs" % _dash_cooldown
 	var hook_tag := "   [HOOK]" if _is_grappling else ""
