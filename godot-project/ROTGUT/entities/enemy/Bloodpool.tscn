@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://bf0ciplf5bx8e"]
+
+[ext_resource type="Script" uid="uid://dqnepmew8nhgf" path="res://entities/enemy/bloodpool.gd" id="1_5u7af"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bmmn1"]
+resource_local_to_scene = true
+transparency = 1
+cull_mode = 2
+depth_draw_mode = 1
+shading_mode = 0
+albedo_color = Color(0.41960785, 0, 0, 0.52156866)
+
+[sub_resource type="QuadMesh" id="QuadMesh_2yj0c"]
+material = SubResource("StandardMaterial3D_bmmn1")
+orientation = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_2yj0c"]
+height = 0.2
+radius = 0.3
+
+[node name="Bloodpool" type="Node3D" unique_id=1275252171]
+script = ExtResource("1_5u7af")
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1643458447]
+transform = Transform3D(0.9999763, -0.0068900674, 0, 0.0068900674, 0.9999763, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("QuadMesh_2yj0c")
+
+[node name="Area" type="Area3D" parent="." unique_id=1425368446]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area" unique_id=428464236]
+shape = SubResource("CylinderShape3D_2yj0c")

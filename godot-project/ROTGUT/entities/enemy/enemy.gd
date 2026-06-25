@@ -13,6 +13,7 @@ extends CharacterBody3D
 signal died
 
 const GRAVITY: float = 24.0
+const BloodPool = preload("res://entities/enemy/Bloodpool.tscn")  # adjust path
 
 @export var max_health: float = 50.0
 
@@ -49,13 +50,37 @@ func _flash() -> void:
 	var tween := create_tween()
 	tween.tween_property(_material, "albedo_color", _base_color, 0.12)
 
-
 func _die() -> void:
 	_alive = false
 	died.emit()
+
+	if _player and _player.has_method("reset_dash_cooldown"):
+		_player.reset_dash_cooldown()
+
+	_spawn_blood_pool()
+
 	var tween := create_tween()
 	tween.tween_property(self, "scale", Vector3(1.2, 0.1, 1.2), 0.12)
 	tween.tween_callback(queue_free)
+
+func _spawn_blood_pool() -> void:
+	var pool: Node3D = BloodPool.instantiate()
+	get_tree().current_scene.add_child(pool)
+
+	# Raycast straight down from the enemy centre to find the floor.
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(
+		global_position,
+		global_position + Vector3.DOWN * 10.0
+	)
+	query.exclude = [self]  # don't hit our own collider
+	var result := space.intersect_ray(query)
+
+	if result:
+		pool.global_position = result.position + Vector3.UP * 0.01
+	else:
+		# Fallback: just use feet position if ray misses
+		pool.global_position = global_position + Vector3.UP * 0.01
 
 
 # Helper for subclasses: flat (horizontal) direction toward the player.

@@ -16,7 +16,7 @@ const MAX_JUMPS: int = 2
 
 # --- Dash ---
 const DASH_SPEED: float = 45
-const DASH_COOLDOWN: float = 1.0
+const DASH_COOLDOWN: float = 3
 const DASH_DURATION: float = 0.2
 
 # --- Crouch / Slide ---
@@ -230,11 +230,8 @@ func _setup_rope() -> void:
 	add_child(_rope_mesh)
 
 
-func apply_jump_pad(force: float) -> void:
-	velocity.y = force
-	_jumps_left = MAX_JUMPS
-	_is_grappling = false
-	_fov_dash_bonus = maxf(_fov_dash_bonus, 10.0)
+func apply_jump_pad(force: float, direction: Vector3 = Vector3.UP) -> void:
+	velocity = direction.normalized() * force
 
 
 func take_damage(amount: float) -> void:
@@ -246,6 +243,9 @@ func take_damage(amount: float) -> void:
 	if _health <= 0.0:
 		_die()
 
+func heal(amount: float) -> void:
+	_health = minf(_health + amount, MAX_HEALTH)
+	# Hook into whatever UI / feedback you already have here
 
 func _flash_damage() -> void:
 	_damage_overlay.color.a = 0.5
@@ -334,6 +334,9 @@ func _physics_process(delta: float) -> void:
 		velocity.z += _dash_dir.z * dash_accel * dash_ease * delta
 
 	# Jump
+	if Input.is_action_pressed("jump"):
+		_jump_buffer = JUMP_BUFFER_TIME
+
 	if _jump_buffer > 0.0 and is_on_floor():
 		velocity.y = JUMP_VELOCITY
 		_jump_buffer = 0.0
@@ -349,7 +352,7 @@ func _physics_process(delta: float) -> void:
 		_just_jumped = true
 		_wall_ride_cooldown = WALL_RIDE_COOLDOWN
 		_is_wall_riding = false
-	elif Input.is_action_just_pressed("jump") and not is_on_floor() and not _is_wall_riding and _jumps_left > 0:
+	elif Input.is_action_pressed("jump") and not is_on_floor() and not _is_wall_riding and _jumps_left > 0:
 		velocity.y = JUMP_VELOCITY
 		_jumps_left -= 1
 
@@ -482,6 +485,8 @@ func _do_dash(wish_dir: Vector3) -> void:
 	_dash_timer = DASH_DURATION
 	_fov_dash_bonus = FOV_DASH_BONUS
 
+func reset_dash_cooldown() -> void:
+	_dash_cooldown = 0.0
 
 func _try_grapple() -> void:
 	var space := get_world_3d().direct_space_state

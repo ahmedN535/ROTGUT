@@ -1,11 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ds707aafp3ckb"]
 
-[ext_resource type="Script" path="res://entities/jump_pad/jump_pad.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://4lb74a5uv8me" path="res://entities/jump_pad/jump_pad.gd" id="1_script"]
 
 [sub_resource type="BoxShape3D" id="shape"]
-size = Vector3(3, 0.3, 3)
-
-[sub_resource type="BoxMesh" id="mesh"]
 size = Vector3(3, 0.3, 3)
 
 [sub_resource type="StandardMaterial3D" id="mat"]
@@ -14,12 +11,15 @@ emission_enabled = true
 emission = Color(0.3, 0.8, 1, 1)
 emission_energy_multiplier = 1.5
 
-[node name="JumpPad" type="Area3D"]
+[sub_resource type="BoxMesh" id="mesh"]
+size = Vector3(3, 0.3, 3)
+
+[node name="JumpPad" type="Area3D" unique_id=1670751316]
 script = ExtResource("1_script")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1282062575]
 shape = SubResource("shape")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=2028496267]
 material_override = SubResource("mat")
 mesh = SubResource("mesh")

@@ -1,12 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bxet1gxiixsw1"]
 
-[ext_resource type="Script" path="res://entities/enemy/melee_rusher.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://ck11epu0rw7yv" path="res://entities/enemy/melee_rusher.gd" id="1_script"]
 
 [sub_resource type="CapsuleShape3D" id="shape"]
-radius = 0.4
-height = 1.8
-
-[sub_resource type="CapsuleMesh" id="mesh"]
 radius = 0.4
 height = 1.8
 
@@ -14,12 +10,16 @@ height = 1.8
 resource_local_to_scene = true
 albedo_color = Color(0.5, 0.2, 0.55, 1)
 
-[node name="MeleeRusher" type="CharacterBody3D"]
+[sub_resource type="CapsuleMesh" id="mesh"]
+radius = 0.4
+height = 1.8
+
+[node name="MeleeRusher" type="CharacterBody3D" unique_id=290754257]
 script = ExtResource("1_script")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1226594941]
 shape = SubResource("shape")
 
-[node name="Mesh" type="MeshInstance3D" parent="."]
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1555000743]
 material_override = SubResource("mat")
 mesh = SubResource("mesh")
