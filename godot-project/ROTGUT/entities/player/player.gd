@@ -82,7 +82,7 @@ var _dash_timer: float = 0.0
 var _dash_dir: Vector3 = Vector3.ZERO
 var _fov_dash_bonus: float = 0.0
 var _bob_time: float = 0.0
-var _speed_label: Label
+var _hud: HUD
 
 var _is_sliding: bool = false
 var _is_wall_riding: bool = false
@@ -100,19 +100,7 @@ var _grapple_release_timer: float = 0.0
 
 var _health: float = MAX_HEALTH
 var _spawn_position: Vector3 = Vector3.ZERO
-var _health_label: Label
-var _damage_overlay: ColorRect
-var _combo_label: Label
-var _combo_bar_bg: ColorRect
-var _combo_bar_fill: ColorRect
-
-var _glow_overlay: ColorRect
-var _glow_mat: ShaderMaterial
-var _glow_intensity: float = 0.0
-var _glow_pulse: float = 0.0
-var _rank_pop_label: Label
-var _rank_pop_tween: Tween
-var _last_rank: int = 0
+var _last_rank: int = 0  # for the rank-up camera punch (the HUD owns the visual pop)
 
 
 func _ready() -> void:
@@ -133,84 +121,8 @@ func _ready() -> void:
 
 
 func _setup_hud() -> void:
-	var canvas := CanvasLayer.new()
-
-	_glow_overlay = ColorRect.new()
-	_glow_overlay.anchor_right = 1.0
-	_glow_overlay.anchor_bottom = 1.0
-	_glow_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_glow_mat = ShaderMaterial.new()
-	var glow_shader := Shader.new()
-	glow_shader.code = "shader_type canvas_item;\n" \
-		+ "uniform vec4 glow_color : source_color = vec4(1.0, 0.3, 0.2, 1.0);\n" \
-		+ "uniform float intensity : hint_range(0.0, 1.0) = 0.0;\n" \
-		+ "void fragment() {\n" \
-		+ "	float d = distance(UV, vec2(0.5));\n" \
-		+ "	float edge = smoothstep(0.30, 0.78, d);\n" \
-		+ "	COLOR = vec4(glow_color.rgb, edge * intensity);\n" \
-		+ "}\n"
-	_glow_mat.shader = glow_shader
-	_glow_overlay.material = _glow_mat
-	canvas.add_child(_glow_overlay)
-
-	_speed_label = Label.new()
-	_speed_label.position = Vector2(16, 16)
-	canvas.add_child(_speed_label)
-
-	var crosshair := Label.new()
-	crosshair.text = "+"
-	crosshair.add_theme_font_size_override("font_size", 28)
-	crosshair.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
-	crosshair.anchor_left = 0.5
-	crosshair.anchor_top = 0.5
-	crosshair.anchor_right = 0.5
-	crosshair.anchor_bottom = 0.5
-	crosshair.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	crosshair.grow_vertical = Control.GROW_DIRECTION_BOTH
-	canvas.add_child(crosshair)
-
-	_health_label = Label.new()
-	_health_label.position = Vector2(16, 72)
-	_health_label.add_theme_font_size_override("font_size", 20)
-	_health_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.45))
-	canvas.add_child(_health_label)
-
-	_combo_label = Label.new()
-	_combo_label.position = Vector2(16, 104)
-	_combo_label.add_theme_font_size_override("font_size", 26)
-	canvas.add_child(_combo_label)
-
-	_combo_bar_bg = ColorRect.new()
-	_combo_bar_bg.position = Vector2(16, 140)
-	_combo_bar_bg.size = Vector2(220, 14)
-	_combo_bar_bg.color = Color(0.1, 0.1, 0.1, 0.55)
-	canvas.add_child(_combo_bar_bg)
-
-	_combo_bar_fill = ColorRect.new()
-	_combo_bar_fill.position = Vector2(16, 140)
-	_combo_bar_fill.size = Vector2(0, 14)
-	canvas.add_child(_combo_bar_fill)
-
-	_damage_overlay = ColorRect.new()
-	_damage_overlay.color = Color(0.8, 0.0, 0.0, 0.0)
-	_damage_overlay.anchor_right = 1.0
-	_damage_overlay.anchor_bottom = 1.0
-	_damage_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(_damage_overlay)
-
-	_rank_pop_label = Label.new()
-	_rank_pop_label.add_theme_font_size_override("font_size", 64)
-	_rank_pop_label.anchor_left = 0.5
-	_rank_pop_label.anchor_top = 0.32
-	_rank_pop_label.anchor_right = 0.5
-	_rank_pop_label.anchor_bottom = 0.32
-	_rank_pop_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_rank_pop_label.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_rank_pop_label.modulate.a = 0.0
-	_rank_pop_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(_rank_pop_label)
-
-	add_child(canvas)
+	_hud = preload("res://ui/hud.tscn").instantiate() as HUD
+	add_child(_hud)
 
 
 func _setup_weapon() -> void:
@@ -246,7 +158,7 @@ func take_damage(amount: float) -> void:
 	if _health <= 0.0:
 		return
 	_health -= amount
-	_flash_damage()
+	_hud.flash_damage()
 	Combo.on_player_hurt()
 	if _health <= 0.0:
 		_die()
@@ -254,11 +166,6 @@ func take_damage(amount: float) -> void:
 func heal(amount: float) -> void:
 	_health = minf(_health + amount, MAX_HEALTH)
 	# Hook into whatever UI / feedback you already have here
-
-func _flash_damage() -> void:
-	_damage_overlay.color.a = 0.5
-	var tween := create_tween()
-	tween.tween_property(_damage_overlay, "color:a", 0.0, 0.4)
 
 
 func _die() -> void:
@@ -270,26 +177,10 @@ func _die() -> void:
 
 
 func _on_rank_changed(rank: int) -> void:
+	# Camera punch on rank-up; the HUD owns the visual pop + glow.
 	if rank > _last_rank and rank > 0:
-		_rank_pop_label.text = Combo.get_rank_name()
-		_rank_pop_label.add_theme_color_override("font_color", CombatFX.tier_color(mini(rank, 3)))
-		_rank_pop_label.modulate.a = 1.0
-		if _rank_pop_tween != null and _rank_pop_tween.is_valid():
-			_rank_pop_tween.kill()
-		_rank_pop_tween = create_tween()
-		_rank_pop_tween.tween_property(_rank_pop_label, "modulate:a", 0.0, 0.7).set_ease(Tween.EASE_IN)
-		_glow_pulse = 0.45
 		_fov_dash_bonus = maxf(_fov_dash_bonus, 8.0)
 	_last_rank = rank
-
-
-func _update_escalation(delta: float) -> void:
-	var rank := Combo.get_rank()
-	var target := minf(rank * 0.16, 0.65)
-	_glow_intensity = lerpf(_glow_intensity, target, 4.0 * delta)
-	_glow_pulse = lerpf(_glow_pulse, 0.0, 6.0 * delta)
-	_glow_mat.set_shader_parameter("intensity", clampf(_glow_intensity + _glow_pulse, 0.0, 1.0))
-	_glow_mat.set_shader_parameter("glow_color", CombatFX.tier_color(mini(rank, 3)))
 
 
 func _input(event: InputEvent) -> void:
@@ -408,7 +299,6 @@ func _physics_process(delta: float) -> void:
 	var horiz_speed := Vector2(velocity.x, velocity.z).length()
 	var is_crouching := crouch_held and is_on_floor() and not _is_sliding
 	_update_camera_feel(delta, horiz_speed, is_crouching)
-	_update_escalation(delta)
 
 	var mult := _damage_multiplier(horiz_speed)
 	var tier := _damage_tier(mult)
@@ -420,19 +310,7 @@ func _physics_process(delta: float) -> void:
 		_weapon.reload()
 
 	var dash_status := "READY" if _dash_cooldown <= 0.0 else "%.1fs" % _dash_cooldown
-	var hook_tag := "   [HOOK]" if _is_grappling else ""
-	_speed_label.text = "Speed: %.1f   Dash: %s%s\nDMG x%.1f   %s" % [
-		horiz_speed, dash_status, hook_tag, mult, CombatFX.tier_name(tier)
-	]
-	_speed_label.modulate = CombatFX.tier_color(tier)
-	_health_label.text = "HP: %d" % roundi(_health)
-
-	var combo_rank := Combo.get_rank()
-	var combo_col := CombatFX.tier_color(mini(combo_rank, 3))
-	_combo_label.text = Combo.get_rank_name()
-	_combo_label.add_theme_color_override("font_color", combo_col)
-	_combo_bar_fill.size.x = 220.0 * (Combo.get_points() / ComboSystem.MAX_POINTS)
-	_combo_bar_fill.color = combo_col
+	_hud.set_stats(horiz_speed, dash_status, _is_grappling, mult, tier, _health)
 
 
 func _start_slide() -> void:
