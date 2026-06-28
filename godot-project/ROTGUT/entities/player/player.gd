@@ -231,7 +231,15 @@ func _setup_rope() -> void:
 
 
 func apply_jump_pad(force: float, direction: Vector3 = Vector3.UP) -> void:
-	velocity = direction.normalized() * force
+	# Keep your momentum perpendicular to the pad; set speed ALONG the pad's
+	# direction to `force`. You launch consistently the way the pad points without
+	# losing the run you came in with (Tom's directionality, with speed carry).
+	var dir := direction.normalized()
+	var along := velocity.dot(dir)
+	velocity += dir * (force - along)
+	_jumps_left = MAX_JUMPS          # refresh air jumps on launch
+	_is_grappling = false
+	_fov_dash_bonus = maxf(_fov_dash_bonus, 10.0)
 
 
 func take_damage(amount: float) -> void:
