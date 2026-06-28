@@ -73,7 +73,7 @@ func _spawn_blood_pool() -> void:
 		global_position,
 		global_position + Vector3.DOWN * 10.0
 	)
-	query.exclude = [self]  # don't hit our own collider
+	query.exclude = [get_rid()]  # don't hit our own collider (exclude takes RIDs, not nodes)
 	var result := space.intersect_ray(query)
 
 	if result:
