@@ -11,18 +11,27 @@ config_version=5
 [application]
 
 config/name="New Game Project"
-run/main_scene="uid://ctr6tpyoynppo"
+run/main_scene="uid://borb6x3hemyoy"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Combo="*res://common/combo_system.gd"
+CyclopsAutoload="*uid://4siqre3jhe80"
 
 [display]
 
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/cyclops_level_builder/plugin.cfg", "res://addons/func_godot/plugin.cfg")
+
+[filesystem]
+
+import/blender/enabled=false
 
 [input]
 
